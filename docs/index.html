@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#010102" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark light" />
+
+    <title>go-skills — Architectural patterns and methodology for Go services</title>
+    <meta name="description" content="A Go knowledge base — 50+ design and concurrency patterns plus an 18-chapter service-architecture methodology — packaged as Claude Code skills, exposed via this site. 13 languages." />
+    <meta name="author" content="Yevgeniy Achin" />
+    <meta name="keywords" content="go, golang, design patterns, concurrency patterns, service architecture, methodology, claude code, skills, mcp, github pages" />
+    <link rel="canonical" href="https://amazopic.github.io/go-skills/" />
+
+    <link rel="alternate" hreflang="x-default" href="https://amazopic.github.io/go-skills/" />
+    <link rel="alternate" hreflang="en" href="https://amazopic.github.io/go-skills/?lang=en" />
+    <link rel="alternate" hreflang="ru" href="https://amazopic.github.io/go-skills/?lang=ru" />
+    <link rel="alternate" hreflang="fr" href="https://amazopic.github.io/go-skills/?lang=fr" />
+    <link rel="alternate" hreflang="de" href="https://amazopic.github.io/go-skills/?lang=de" />
+    <link rel="alternate" hreflang="uk" href="https://amazopic.github.io/go-skills/?lang=uk" />
+    <link rel="alternate" hreflang="sl" href="https://amazopic.github.io/go-skills/?lang=sl" />
+    <link rel="alternate" hreflang="it" href="https://amazopic.github.io/go-skills/?lang=it" />
+    <link rel="alternate" hreflang="es" href="https://amazopic.github.io/go-skills/?lang=es" />
+    <link rel="alternate" hreflang="zh" href="https://amazopic.github.io/go-skills/?lang=zh" />
+    <link rel="alternate" hreflang="ja" href="https://amazopic.github.io/go-skills/?lang=ja" />
+    <link rel="alternate" hreflang="ko" href="https://amazopic.github.io/go-skills/?lang=ko" />
+    <link rel="alternate" hreflang="ar" href="https://amazopic.github.io/go-skills/?lang=ar" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="go-skills — Architectural patterns and methodology for Go services" />
+    <meta property="og:description" content="50+ Go patterns + 18-chapter service-architecture methodology, packaged as Claude Code skills. Linear-styled site, 13 languages." />
+    <meta property="og:url" content="https://amazopic.github.io/go-skills/" />
+    <meta property="og:site_name" content="go-skills" />
+    <meta property="og:image" content="https://amazopic.github.io/go-skills/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="uk_UA" />
+    <meta property="og:locale:alternate" content="sl_SI" />
+    <meta property="og:locale:alternate" content="it_IT" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="ar_SA" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="go-skills — Architectural patterns and methodology for Go services" />
+    <meta name="twitter:description" content="50+ Go patterns + 18-chapter service-architecture methodology, packaged as Claude Code skills." />
+    <meta name="twitter:image" content="https://amazopic.github.io/go-skills/og-image.png" />
+
+    <link rel="alternate" type="text/plain" href="/go-skills/llms.txt" title="llms.txt — AI crawler index" />
+    <link rel="alternate" type="text/plain" href="/go-skills/llms-full.txt" title="llms-full.txt — AI ingestion corpus" />
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=editorial-new@200,300,400,500,700,800&f[]=neue-montreal@400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&display=swap" />
+
+    <link rel="stylesheet" href="css/tokens.css?v=1" />
+    <link rel="stylesheet" href="css/base.css?v=1" />
+    <link rel="stylesheet" href="css/sections.css?v=1" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "go-skills",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "A Go knowledge base — architectural patterns and a service-building methodology — packaged as Claude Code skills.",
+      "softwareVersion": "0.1.0",
+      "datePublished": "2026-05-10",
+      "author": { "@type": "Person", "name": "Yevgeniy Achin", "email": "amazopic@gmail.com", "url": "https://github.com/amazopic" },
+      "publisher": { "@type": "Person", "name": "Yevgeniy Achin" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "license": "https://spdx.org/licenses/MIT.html",
+      "url": "https://amazopic.github.io/go-skills/",
+      "downloadUrl": "https://github.com/amazopic/go-skills",
+      "codeRepository": "https://github.com/amazopic/go-skills",
+      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar"],
+      "keywords": "go, golang, design patterns, concurrency, methodology, claude code, skills, mcp",
+      "featureList": [
+        "9 pattern categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns",
+        "50+ pattern entries — filled and stubs",
+        "18-chapter service architecture methodology, split into 13 chapter-grouped Claude Code skills",
+        "23 runnable Go pattern packages with tests under examples/",
+        "Static GitHub Pages site with Linear design system",
+        "Full SEO stack: hreflang × 13, JSON-LD (SoftwareApplication, WebSite, FAQPage, BreadcrumbList, HowTo, TechArticle), llms.txt"
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "go-skills",
+      "url": "https://amazopic.github.io/go-skills/",
+      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar"],
+      "publisher": { "@type": "Person", "name": "Yevgeniy Achin" }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Why build this when go-patterns already exists on GitHub?", "acceptedAnswer": { "@type": "Answer", "text": "go-skills consolidates two upstream archives (theory + runnable code), adds a service-architecture methodology, and packages everything as Claude Code-compatible skills with rich frontmatter — so your editor surfaces the right pattern automatically." } },
+        { "@type": "Question", "name": "Are the patterns idiomatic Go or GoF translations?", "acceptedAnswer": { "@type": "Answer", "text": "Both. Concurrency, messaging, stability, profiling, idiom — these are Go-native. Creational/structural/behavioral are GoF translated to Go with idiomatic adjustments." } },
+        { "@type": "Question", "name": "Why are some entries marked as stubs?", "acceptedAnswer": { "@type": "Answer", "text": "The catalog mirrors a public taxonomy; not every node has a body yet. Stubs make the index complete and discoverable." } },
+        { "@type": "Question", "name": "Will the examples run on my machine?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — one shared go.mod at examples/. Run cd examples && go test ./... . Go 1.21+." } },
+        { "@type": "Question", "name": "When will the MCP server land?", "acceptedAnswer": { "@type": "Answer", "text": "A future iteration. The mcp/ folder holds a roadmap-only README in v1; the protocol surface is sketched there." } },
+        { "@type": "Question", "name": "Why Linear's design system?", "acceptedAnswer": { "@type": "Answer", "text": "Linear's near-black + single-accent aesthetic matches the content — dense, technical, no decoration." } },
+        { "@type": "Question", "name": "License?", "acceptedAnswer": { "@type": "Answer", "text": "MIT. Use, fork, redistribute freely." } },
+        { "@type": "Question", "name": "Does this support the methodology in non-English?", "acceptedAnswer": { "@type": "Answer", "text": "README is translated to 13 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap." } }
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home",        "item": "https://amazopic.github.io/go-skills/" },
+        { "@type": "ListItem", "position": 2, "name": "Methodology", "item": "https://amazopic.github.io/go-skills/#methodology" },
+        { "@type": "ListItem", "position": 3, "name": "Catalog",     "item": "https://amazopic.github.io/go-skills/#catalog" },
+        { "@type": "ListItem", "position": 4, "name": "Install",     "item": "https://amazopic.github.io/go-skills/#install" },
+        { "@type": "ListItem", "position": 5, "name": "FAQ",         "item": "https://amazopic.github.io/go-skills/#faq" }
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "Install go-skills as Claude Code skills",
+      "description": "Drop the go-skills repository into your Claude Code skills path so the editor surfaces relevant Go patterns and methodology chapters.",
+      "totalTime": "PT2M",
+      "tool": [{ "@type": "HowToTool", "name": "git" }, { "@type": "HowToTool", "name": "Claude Code" }],
+      "step": [
+        { "@type": "HowToStep", "name": "Clone",    "text": "git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills" },
+        { "@type": "HowToStep", "name": "Configure","text": "Add the path to skillSources in ~/.claude/settings.json" },
+        { "@type": "HowToStep", "name": "Restart",  "text": "Restart Claude Code." }
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "Go Service Architecture Methodology",
+      "description": "An 18-chapter reference for building backend services in Go — directory layout, layer separation, DI, configuration, transport, storage, jobs, logging, testing, build/deploy.",
+      "author": { "@type": "Person", "name": "Yevgeniy Achin" },
+      "datePublished": "2026-05-10",
+      "inLanguage": "en",
+      "url": "https://amazopic.github.io/go-skills/#methodology",
+      "articleSection": [
+        "Principles", "Directory Layout", "Layered Architecture", "Bootstrap & DI",
+        "Configuration", "External Connections", "Storage", "HTTP Transport",
+        "Background Jobs", "Logging", "Validation", "Error Handling", "Testing",
+        "Build & Deploy", "Default Stack"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <main>
+
+      <section class="section s-hero" aria-labelledby="hero-title">
+        <div class="wrap">
+          <span class="brand-mark" data-i18n="hero.brand">go-skills</span>
+          <h1 id="hero-title" data-i18n="hero.title">Architectural patterns and methodology for Go services.</h1>
+          <p class="lede" data-i18n="hero.lede">A curated knowledge base — 50+ design and concurrency patterns plus an 18-chapter service-architecture playbook — packaged as Claude Code skills, exposed via this site, and (soon) an MCP server.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#catalog" data-i18n="hero.cta.catalog">Browse catalog</a>
+            <a class="btn" href="#methodology" data-i18n="hero.cta.methodology">Read methodology</a>
+            <a class="btn" href="https://github.com/amazopic/go-skills" data-i18n="hero.cta.github">View on GitHub &rarr;</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-vibe" id="vibe">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="vibe.eyebrow">Three pillars</span>
+          <h2 data-i18n="vibe.title">Methodology &middot; Patterns &middot; Skills.</h2>
+          <p class="lede" data-i18n="vibe.lede">A reference for senior Go engineers — opinionated, source-derived, no decoration. The methodology gives you a baseline service; the patterns sharpen the parts; the skills make it all addressable from Claude Code.</p>
+          <div class="grid grid-3 pillars">
+            <div class="card pillar">
+              <h3 data-i18n="vibe.p1.title">Methodology</h3>
+              <p data-i18n="vibe.p1.body">An 18-chapter playbook for building production Go services — directory layout, layered architecture, manual DI, configuration, retries, storage, transport, jobs, logging, validation, error handling, testing, build/deploy, default stack.</p>
+            </div>
+            <div class="card pillar">
+              <h3 data-i18n="vibe.p2.title">Patterns</h3>
+              <p data-i18n="vibe.p2.body">50+ classic and Go-flavored patterns across creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns. Filled entries link to runnable Go examples.</p>
+            </div>
+            <div class="card pillar">
+              <h3 data-i18n="vibe.p3.title">Skills</h3>
+              <p data-i18n="vibe.p3.body">Each pattern and chapter is a Claude Code skill — a markdown file with a triggerable description. Drop the repo into your skills path and it surfaces the right knowledge for the task at hand.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-numbers" id="numbers">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="numbers.eyebrow">Inventory</span>
+          <h2 data-i18n="numbers.title">By the numbers.</h2>
+          <div class="stats">
+            <div class="stat"><div class="stat-num">9</div><div class="stat-label" data-i18n="numbers.s1">Categories</div></div>
+            <div class="stat"><div class="stat-num">50+</div><div class="stat-label" data-i18n="numbers.s2">Patterns</div></div>
+            <div class="stat"><div class="stat-num">18</div><div class="stat-label" data-i18n="numbers.s3">Methodology chapters</div></div>
+            <div class="stat"><div class="stat-num">23</div><div class="stat-label" data-i18n="numbers.s4">Runnable examples</div></div>
+            <div class="stat"><div class="stat-num">13</div><div class="stat-label" data-i18n="numbers.s5">Languages</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-methodology" id="methodology">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="meth.eyebrow">Service Methodology</span>
+          <h2 data-i18n="meth.title">A reference for building services in Go.</h2>
+          <p class="lede" data-i18n="meth.lede">An anonymized, project-agnostic playbook. Read end-to-end as the canonical 930-line document, or pick a chapter-skill below.</p>
+          <ol class="toc">
+            <li><span class="toc-num">01</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/01-principles-and-layout.md">Principles &amp; Layout</a></li>
+            <li><span class="toc-num">02</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/02-layered-architecture.md">Layered Architecture</a></li>
+            <li><span class="toc-num">03</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/03-bootstrap-and-di.md">Bootstrap &amp; DI</a></li>
+            <li><span class="toc-num">04</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/04-configuration.md">Configuration</a></li>
+            <li><span class="toc-num">05</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/05-external-connections.md">External Connections</a></li>
+            <li><span class="toc-num">06</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/06-storage.md">Storage</a></li>
+            <li><span class="toc-num">07</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/07-http-transport.md">HTTP Transport</a></li>
+            <li><span class="toc-num">08</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/08-background-jobs.md">Background Jobs</a></li>
+            <li><span class="toc-num">09</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/09-logging.md">Logging</a></li>
+            <li><span class="toc-num">10</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/10-validation.md">Validation</a></li>
+            <li><span class="toc-num">11</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/11-error-handling.md">Error Handling</a></li>
+            <li><span class="toc-num">12</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/12-testing.md">Testing</a></li>
+            <li><span class="toc-num">13</span><a href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/13-build-and-deploy.md">Build &amp; Deploy</a></li>
+          </ol>
+          <p style="margin-top: 1.5rem;"><a class="btn" href="https://github.com/amazopic/go-skills/blob/main/skills/methodology/00-canonical-full.md" data-i18n="meth.cta">Read the full canonical document &rarr;</a></p>
+        </div>
+      </section>
+
+      <section class="section s-catalog" id="catalog">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="cat.eyebrow">Catalog</span>
+          <h2 data-i18n="cat.title">All patterns.</h2>
+          <p class="lede" data-i18n="cat.lede">Filled cards have a body and (where applicable) a runnable example. Stubs are listed for completeness — body to be filled in a future iteration.</p>
+
+          <!-- Concurrency — Go's headline strength comes first -->
+          <div class="cat-group">
+            <h3 data-i18n="cat.concurrency">Concurrency</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Bounded Parallelism</h4>
+                <p class="desc">Process N items with at most K workers concurrently.</p>
+<pre><code>sem := make(chan struct{}, K)
+for _, item := range items {
+    sem &lt;- struct{}{}
+    go func(it Item) {
+        defer func(){ &lt;-sem }()
+        process(it)
+    }(item)
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Generator</h4>
+                <p class="desc">Goroutine emits values on a channel, returned as <code>&lt;-chan T</code>.</p>
+<pre><code>func gen(in []int) &lt;-chan int {
+    out := make(chan int)
+    go func(){
+        defer close(out)
+        for _, v := range in { out &lt;- v }
+    }()
+    return out
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Parallelism</h4>
+                <p class="desc">Scatter work across goroutines, gather results.</p>
+<pre><code>var wg sync.WaitGroup
+for _, x := range xs {
+    wg.Add(1)
+    go func(v int){ defer wg.Done(); work(v) }(x)
+}
+wg.Wait()</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>N-Barrier</h4><p class="desc">Wait until N goroutines reach the same point.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Broadcast</h4><p class="desc">Send the same message to all subscribers.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Coroutines</h4><p class="desc">Cooperative goroutine pairs that yield between each other.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Producer Consumer</h4><p class="desc">Decouple work generation from work processing via a channel.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Reactor</h4><p class="desc">Single-threaded event loop dispatching to handlers.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.stability">Stability</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Circuit Breaker</h4>
+                <p class="desc">Open the circuit after N failures so the dependency can recover.</p>
+<pre><code>// state: closed | open | half-open
+if breaker.state == "open" &amp;&amp; time.Since(breaker.openedAt) &gt; cooldown {
+    breaker.state = "half-open"
+}
+if err := fn(); err != nil {
+    breaker.failures++
+    if breaker.failures &gt;= threshold {
+        breaker.state = "open"
+    }
+}</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Bulkhead</h4><p class="desc">Isolate resource pools so one consumer cannot exhaust shared capacity.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Deadline</h4><p class="desc">Bound the maximum time a request can wait.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Fail-Fast</h4><p class="desc">Reject early if preconditions cannot be met.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Handshaking</h4><p class="desc">Negotiate capacity between client and server before work starts.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Steady-State</h4><p class="desc">Bound resource accumulation so the system reaches a stable equilibrium.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.messaging">Messaging</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Fan-In</h4>
+                <p class="desc">Multiplex several channels into one.</p>
+<pre><code>func merge(cs ...&lt;-chan int) &lt;-chan int {
+    out := make(chan int)
+    for _, c := range cs {
+        go func(c &lt;-chan int){
+            for v := range c { out &lt;- v }
+        }(c)
+    }
+    return out
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Fan-Out</h4>
+                <p class="desc">Distribute work from one channel to N workers.</p>
+<pre><code>func fanOut(in &lt;-chan Job, n int) {
+    var wg sync.WaitGroup
+    wg.Add(n)
+    for i := 0; i &lt; n; i++ {
+        go func(){
+            defer wg.Done()
+            for j := range in { process(j) }
+        }()
+    }
+    wg.Wait()
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Publish/Subscribe</h4>
+                <p class="desc">Topic-based event distribution via a broker.</p>
+<pre><code>bus.Subscribe("topic", func(m Msg){ /* ... */ })
+bus.Publish("topic", msg)</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Futures &amp; Promises</h4><p class="desc">Represent the eventual result of an async computation.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Push &amp; Pull</h4><p class="desc">Mirror Fan-Out / Fan-In with explicit pull-side semantics.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.synchronization">Synchronization</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Semaphore</h4>
+                <p class="desc">Buffered channel as a counting semaphore.</p>
+<pre><code>sem := make(chan struct{}, N)
+sem &lt;- struct{}{}
+defer func(){ &lt;-sem }()</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Mutex</h4><p class="desc">sync.Mutex for exclusive access to shared state.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Read-Write Lock</h4><p class="desc">sync.RWMutex when reads dominate writes.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Monitor</h4><p class="desc">Bundle state and synchronization in one type.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Condition Variable</h4><p class="desc">sync.Cond for waiting on a state change.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.idiom">Idioms</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Functional Options</h4>
+                <p class="desc">func(*T) options for ergonomic optional configuration.</p>
+<pre><code>type Option func(*Server)
+func WithTimeout(d time.Duration) Option {
+    return func(s *Server){ s.timeout = d }
+}
+NewServer(":8080", WithTimeout(5*time.Second))</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Specification</h4><p class="desc">Encapsulate a predicate over an entity for reuse.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.creational">Creational</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Builder</h4>
+                <p class="desc">Step-by-step assembly of a complex object.</p>
+<pre><code>b := NewBuilder().WithName("x").WithSize(10).Build()</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Factory Method</h4>
+                <p class="desc">Defer instantiation to a function.</p>
+<pre><code>func NewWidget(kind string) Widget {
+    switch kind {
+    case "a": return &amp;A{}
+    default:  return &amp;B{}
+    }
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Object Pool</h4>
+                <p class="desc">Reuse expensive objects via sync.Pool.</p>
+<pre><code>var pool = sync.Pool{
+    New: func() any { return new(Buffer) },
+}</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Singleton</h4>
+                <p class="desc">Lazy single instance via sync.Once.</p>
+<pre><code>var once sync.Once
+var instance *T
+func Get() *T {
+    once.Do(func(){ instance = &amp;T{} })
+    return instance
+}</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Abstract Factory</h4><p class="desc">Family of related factories behind one interface.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Prototype</h4><p class="desc">Clone an existing instance instead of constructing anew.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.structural">Structural</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Decorator</h4>
+                <p class="desc">Wrap a value to extend behavior, preserve interface.</p>
+<pre><code>type Logger func(http.Handler) http.Handler</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Proxy</h4>
+                <p class="desc">Stand-in object controls access to the real one.</p>
+<pre><code>func (p *Proxy) Get(k K) V {
+    if v, ok := p.cache[k]; ok { return v }
+    v := p.real.Get(k)
+    p.cache[k] = v
+    return v
+}</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Adapter</h4><p class="desc">Translate one interface to another.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Bridge</h4><p class="desc">Decouple abstraction from implementation.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Composite</h4><p class="desc">Treat single objects and compositions uniformly.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Facade</h4><p class="desc">Front a subsystem with a simpler API.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Flyweight</h4><p class="desc">Share intrinsic state across many instances.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.behavioral">Behavioral</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Observer</h4>
+                <p class="desc">One-to-many notification of state changes.</p>
+<pre><code>type Observer interface{ OnEvent(e Event) }</code></pre>
+              </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Strategy</h4>
+                <p class="desc">Select algorithm at runtime via interface.</p>
+<pre><code>type Sorter interface{ Sort([]int) []int }</code></pre>
+              </article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Chain of Responsibility</h4><p class="desc">Pass the request along until one handler consumes it.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Command</h4><p class="desc">Encapsulate an action and its arguments as an object.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Iterator</h4><p class="desc">Sequential access to elements of an aggregate.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Mediator</h4><p class="desc">Centralize complex peer-to-peer communication.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Memento</h4><p class="desc">Capture and restore an object's state.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>State</h4><p class="desc">Object behavior changes with internal state.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Template Method</h4><p class="desc">Skeleton in base, overridable steps in subtypes.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Visitor</h4><p class="desc">External operation over an object hierarchy.</p></article>
+              <article class="card pattern-card"><span class="status">stub</span><h4>Registry</h4><p class="desc">Global lookup table for shared singletons.</p></article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.profiling">Profiling</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Timing</h4>
+                <p class="desc">Defer-based per-call latency log.</p>
+<pre><code>defer func(t time.Time){
+    log.Printf("took %v", time.Since(t))
+}(time.Now())</code></pre>
+              </article>
+            </div>
+          </div>
+
+          <div class="cat-group">
+            <h3 data-i18n="cat.antipatterns">Anti-Patterns</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card"><span class="status">stub</span><h4>Cascading Failures</h4><p class="desc">Failure of one component triggers further failures downstream.</p></article>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="section s-specimens" id="specimens">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="spec.eyebrow">Specimens</span>
+          <h2 data-i18n="spec.title">Three patterns, in full.</h2>
+
+          <article class="specimen">
+            <h3>Functional Options</h3>
+            <p>The idiomatic Go way to pass optional configuration to a constructor.</p>
+<pre><code>type Server struct {
+    addr    string
+    timeout time.Duration
+}
+
+type Option func(*Server)
+
+func WithTimeout(d time.Duration) Option {
+    return func(s *Server) { s.timeout = d }
+}
+
+func NewServer(addr string, opts ...Option) *Server {
+    s := &amp;Server{addr: addr, timeout: 30 * time.Second}
+    for _, opt := range opts {
+        opt(s)
+    }
+    return s
+}
+
+// usage
+srv := NewServer(":8080", WithTimeout(5 * time.Second))</code></pre>
+          </article>
+
+          <article class="specimen">
+            <h3>Circuit Breaker</h3>
+            <p>Fail fast for an unreliable downstream so it has time to recover.</p>
+<pre><code>type Breaker struct {
+    failures   int
+    state      string // "closed" | "open" | "half-open"
+    openedAt   time.Time
+    threshold  int
+    cooldown   time.Duration
+    mu         sync.Mutex
+}
+
+func (b *Breaker) Call(fn func() error) error {
+    b.mu.Lock()
+    if b.state == "open" &amp;&amp; time.Since(b.openedAt) &gt; b.cooldown {
+        b.state = "half-open"
+    }
+    if b.state == "open" {
+        b.mu.Unlock()
+        return errors.New("circuit open")
+    }
+    b.mu.Unlock()
+
+    err := fn()
+    b.mu.Lock(); defer b.mu.Unlock()
+    if err != nil {
+        b.failures++
+        if b.failures &gt;= b.threshold { b.state = "open"; b.openedAt = time.Now() }
+        return err
+    }
+    b.failures = 0
+    b.state = "closed"
+    return nil
+}</code></pre>
+          </article>
+
+          <article class="specimen">
+            <h3>Fan-Out</h3>
+            <p>Distribute work from a single channel across N worker goroutines.</p>
+<pre><code>func fanOut(in &lt;-chan Job, n int) {
+    var wg sync.WaitGroup
+    wg.Add(n)
+    for i := 0; i &lt; n; i++ {
+        go func() {
+            defer wg.Done()
+            for j := range in {
+                process(j)
+            }
+        }()
+    }
+    wg.Wait()
+}</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="section s-install" id="install">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="inst.eyebrow">Install</span>
+          <h2 data-i18n="inst.title">Use as Claude Code skills.</h2>
+          <p class="lede" data-i18n="inst.lede">Drop the repo into your skills path. Claude Code will surface skills from this repo when their description matches your task.</p>
+
+<pre><code>git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills</code></pre>
+
+          <p data-i18n="inst.settings">Then add to <code>~/.claude/settings.json</code>:</p>
+
+<pre><code>{
+  "skillSources": [
+    "~/.claude/plugins/go-skills/skills"
+  ]
+}</code></pre>
+
+          <p data-i18n="inst.restart">Restart Claude Code.</p>
+
+          <p style="margin-top: 2rem; color: var(--ink-subtle); font-size: var(--fs-sm);" data-i18n="inst.mcp">An MCP server that exposes the same content programmatically is on the roadmap — see below.</p>
+        </div>
+      </section>
+
+      <section class="section s-roadmap" id="roadmap">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="road.eyebrow">Roadmap</span>
+          <h2 data-i18n="road.title">What's next.</h2>
+          <ul>
+            <li data-i18n="road.l1">Fill the remaining ~33 stubbed pattern bodies — port from upstream Go pattern archives.</li>
+            <li data-i18n="road.l2">MCP server: expose <code>tools.list_patterns</code>, <code>tools.get_pattern</code>, and methodology chapters as resources.</li>
+            <li data-i18n="road.l3">Translate methodology and pattern bodies (currently English-only) into the 12 secondary languages.</li>
+            <li data-i18n="road.l4">CI: markdown-link-check, <code>go test ./examples/...</code>, Lighthouse-CI, JSON-LD validation, README parity.</li>
+            <li data-i18n="road.l5">Slash command <code>/go-skill &lt;pattern&gt;</code> to inject a pattern into Claude Code context on demand.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section s-faq" id="faq">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="faq.eyebrow">FAQ</span>
+          <h2 data-i18n="faq.title">Frequently asked.</h2>
+          <dl>
+            <dt data-i18n="faq.q1">Why build this when go-patterns already exists on GitHub?</dt>
+            <dd data-i18n="faq.a1">go-skills consolidates two upstream archives (theory + runnable code), adds a service-architecture methodology, and packages everything as Claude Code-compatible skills with rich frontmatter — so your editor surfaces the right pattern automatically.</dd>
+
+            <dt data-i18n="faq.q2">Are the patterns idiomatic Go or GoF translations?</dt>
+            <dd data-i18n="faq.a2">Both. Concurrency, messaging, stability, profiling, idiom — these are Go-native. Creational/structural/behavioral are GoF translated to Go with idiomatic adjustments (e.g., functional options replacing Builder where it makes sense).</dd>
+
+            <dt data-i18n="faq.q3">Why are some entries marked as stubs?</dt>
+            <dd data-i18n="faq.a3">The catalog mirrors a public taxonomy; not every node has a body yet. Stubs make the index complete and discoverable; bodies will be filled iteratively. See <code>PATTERNS.md</code> for status.</dd>
+
+            <dt data-i18n="faq.q4">Will the examples run on my machine?</dt>
+            <dd data-i18n="faq.a4">Yes — one shared <code>go.mod</code> at <code>examples/</code>. Run <code>cd examples &amp;&amp; go test ./...</code>. Go 1.21+.</dd>
+
+            <dt data-i18n="faq.q5">When will the MCP server land?</dt>
+            <dd data-i18n="faq.a5">A future iteration. The <code>mcp/</code> folder holds a roadmap-only README in v1; the protocol surface is sketched there.</dd>
+
+            <dt data-i18n="faq.q6">Why Linear's design system?</dt>
+            <dd data-i18n="faq.a6">Linear's near-black + single-accent aesthetic matches the content — dense, technical, no decoration. Editorial New + Geist Mono carry the typography.</dd>
+
+            <dt data-i18n="faq.q7">License?</dt>
+            <dd data-i18n="faq.a7">MIT. Use, fork, redistribute freely.</dd>
+
+            <dt data-i18n="faq.q8">Does this support the methodology in non-English?</dt>
+            <dd data-i18n="faq.a8">README is translated to 13 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap.</dd>
+          </dl>
+        </div>
+      </section>
+
+      <footer class="s-colophon">
+        <div class="wrap">
+          <p>go-skills &middot; MIT &middot; Yevgeniy Achin</p>
+          <div class="links">
+            <a href="https://github.com/amazopic/go-skills">GitHub</a>
+            <a href="/go-skills/llms.txt">llms.txt</a>
+            <a href="/go-skills/llms-full.txt">llms-full.txt</a>
+            <a href="#">Top &uarr;</a>
+          </div>
+        </div>
+      </footer>
+
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
