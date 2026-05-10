@@ -1,0 +1,35 @@
+# go-skills
+
+> A Go knowledge base — architectural patterns and a service-building methodology — packaged as Claude Code skills, exposed via a static site, and (soon) an MCP server. Source: methodology + 50+ pattern skills (theory + runnable examples in some cases).
+
+Author: Yevgeniy Achin <amazopic@gmail.com>
+License: MIT
+Languages: 13 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar)
+
+## Documentation
+
+- [README](README.md): overview, install, link to site.
+- [PATTERNS.md](PATTERNS.md): full catalog of 50+ patterns across 9 categories.
+- [METHODOLOGY.md](METHODOLOGY.md): index of 13 chapter-skills + canonical full doc.
+- [LICENSE](LICENSE): MIT.
+
+## Skills (Claude Code)
+
+- [skills/README.md](skills/README.md): how to install as Claude Code skills.
+- [skills/methodology/00-canonical-full.md](skills/methodology/00-canonical-full.md): full Go service architecture doc.
+- [skills/methodology/01..13-*.md](skills/methodology/): 13 chapter-grouped methodology skills.
+- [skills/<category>/*.md](skills/): per-pattern skills across creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns.
+
+## Examples
+
+- [examples/](examples/): 23 runnable Go pattern packages with `_test.go`. One shared module: `github.com/amazopic/go-skills/examples`. Run: `cd examples && go test ./...`.
+
+## Site
+
+- [docs/index.html](docs/index.html): GitHub Pages site (Linear design system).
+- [docs/llms-full.txt](docs/llms-full.txt): full corpus mirror.
+
+## Future
+
+- [mcp/README.md](mcp/README.md): roadmap for the MCP server (no implementation in v1).
+- [commands/README.md](commands/README.md): roadmap for slash-command integration.
