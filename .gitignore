@@ -4,6 +4,7 @@ node_modules/
 .cache/
 .idea/
 .vscode/
+.claude/
 coverage.out
 coverage.html
 bin/
