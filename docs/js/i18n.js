@@ -21,7 +21,7 @@ export const defaultLocale = 'en';
 
 export const messages = {
   en: {
-    'meta.title':   'go-skills — Architectural patterns and methodology for Go services',
+    'meta.title':   'go-skills — Patterns & methodology for Go services',
     'meta.description': 'A Go knowledge base — 50+ patterns + 18-chapter service architecture methodology — packaged as Claude Code skills.',
     'hero.brand':   'go-skills',
     'hero.title':   'Architectural patterns and methodology for Go services.',
