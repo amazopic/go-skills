@@ -18,10 +18,33 @@ function buildLangSwitcher() {
   document.body.appendChild(sel);
 }
 
+function setupCopyButtons() {
+  document.querySelectorAll('[data-copy-target]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const target = document.querySelector(btn.getAttribute('data-copy-target'));
+      if (!target) return;
+      try {
+        await navigator.clipboard.writeText(target.textContent.trim());
+        const label = btn.querySelector('span') || btn;
+        const orig = label.textContent;
+        label.textContent = btn.getAttribute('data-copy-done') || 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          label.textContent = orig;
+          btn.classList.remove('copied');
+        }, 1500);
+      } catch (e) {
+        console.error('Copy failed', e);
+      }
+    });
+  });
+}
+
 function init() {
   themes.init();
   apply(getLocale());
   buildLangSwitcher();
+  setupCopyButtons();
 }
 
 if (document.readyState === 'loading') {

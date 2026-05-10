@@ -2,11 +2,11 @@
   <rect width="1200" height="630" fill="#010102"/>
   <line x1="80" y1="120" x2="1120" y2="120" stroke="#23252a" stroke-width="1"/>
   <text x="80" y="100"  font-family="Geist Mono, monospace" font-size="22"
-        fill="#828fff" letter-spacing="2">GO-SKILLS · FOR CLAUDE CODE</text>
+        fill="#828fff" letter-spacing="2">CLAUDE CODE + YOU + GO-SKILLS</text>
   <text x="80" y="350"  font-family="Editorial New, serif"  font-size="92"
-        fill="#f7f8f8" letter-spacing="-2">Senior-grade Go</text>
+        fill="#f7f8f8" letter-spacing="-2">Senior Go developer.</text>
   <text x="80" y="450"  font-family="Editorial New, serif"  font-size="92"
-        fill="#f7f8f8" letter-spacing="-2">from your first prompt.</text>
+        fill="#f7f8f8" letter-spacing="-2">Rocket engine included.</text>
   <text x="80" y="580"  font-family="Geist Mono, monospace" font-size="18"
-        fill="#8a8f98">50+ patterns · 18-chapter service-architecture playbook · 13 languages</text>
+        fill="#8a8f98">10+ years of senior Go · 50+ patterns · hundreds of production projects</text>
 </svg>
