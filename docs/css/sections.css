@@ -10,7 +10,7 @@
   font-size: var(--fs-xs);
   letter-spacing: var(--tr-wide);
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-hover); /* #828fff — AA contrast on dark canvas */
 }
 .s-hero h1 {
   margin-top: 1.5rem;
@@ -126,7 +126,7 @@
   padding: 1px 6px;
   border-radius: var(--r-sm);
 }
-.s-catalog .pattern-card .status.filled { color: var(--accent); border-color: var(--accent); }
+.s-catalog .pattern-card .status.filled { color: var(--accent-hover); border-color: var(--accent-hover); } /* AA contrast on surface-1 */
 @media (max-width: 1024px) { .s-catalog .pattern-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px)  { .s-catalog .pattern-grid { grid-template-columns: 1fr; } }
 
