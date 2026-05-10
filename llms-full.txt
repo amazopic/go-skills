@@ -1,0 +1,3339 @@
+# go-skills — full corpus
+
+> All skills concatenated. For the indexed table of contents see llms.txt.
+
+--- BEGIN skills/README.md ---
+# Skills
+
+This folder packages the knowledge base as Claude Code-compatible skills. Every file (except this README) starts with YAML frontmatter declaring `name`, `description`, `category`, `sources`, and (where applicable) `example`.
+
+## Install as Claude Code skills
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
+
+# 2. Add to your Claude Code skills path (~/.claude/settings.json):
+{
+  "skillSources": [
+    "~/.claude/plugins/go-skills/skills"
+  ]
+}
+
+# 3. Restart Claude Code.
+```
+
+Now Claude Code will surface skills from this repo when their `description` matches your task.
+
+## Layout
+
+- `methodology/` — 13 chapter-grouped skills + 1 canonical full doc.
+- `creational/`, `structural/`, `behavioral/` — GoF + Go-flavored patterns.
+- `concurrency/`, `synchronization/`, `messaging/` — Go's strengths.
+- `stability/`, `profiling/`, `idiom/`, `anti-patterns/` — operational and Go-specific.
+
+See `../PATTERNS.md` for the full catalog with status (filled / partial / stub).
+--- END skills/README.md ---
+
+--- BEGIN skills/anti-patterns/cascading-failures.md ---
+
+# Cascading Failures
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<AntiPatterns>/<CascadingFailures>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/anti-patterns/cascading-failures.md ---
+
+--- BEGIN skills/behavioral/chain-of-responsibility.md ---
+
+# Chain of Responsibility
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/ChainOfResponsibility/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/chain-of-responsibility/`
+--- END skills/behavioral/chain-of-responsibility.md ---
+
+--- BEGIN skills/behavioral/command.md ---
+
+# Command
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/Command/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/command/`
+--- END skills/behavioral/command.md ---
+
+--- BEGIN skills/behavioral/iterator.md ---
+
+# Iterator
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/Iterator/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/iterator/`
+--- END skills/behavioral/iterator.md ---
+
+--- BEGIN skills/behavioral/mediator.md ---
+
+# Mediator
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/Mediator/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/mediator/`
+--- END skills/behavioral/mediator.md ---
+
+--- BEGIN skills/behavioral/memento.md ---
+
+# Memento
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/Memento/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/memento/`
+--- END skills/behavioral/memento.md ---
+
+--- BEGIN skills/behavioral/observer.md ---
+
+# Observer Pattern
+
+The [observer pattern](https://en.wikipedia.org/wiki/Observer_pattern) allows a type instance to "publish" events to other type instances ("observers") who wish to be updated when a particular event occurs.
+
+## Implementation
+
+In long-running applications&mdash;such as webservers&mdash;instances can keep a collection of observers that will receive notification of triggered events.
+
+Implementations vary, but interfaces can be used to make standard observers and notifiers:
+
+```go
+type (
+	// Event defines an indication of a point-in-time occurrence.
+	Event struct {
+		// Data in this case is a simple int, but the actual
+		// implementation would depend on the application.
+		Data int64
+	}
+
+	// Observer defines a standard interface for instances that wish to list for
+	// the occurrence of a specific event.
+	Observer interface {
+		// OnNotify allows an event to be "published" to interface implementations.
+		// In the "real world", error handling would likely be implemented.
+		OnNotify(Event)
+	}
+
+	// Notifier is the instance being observed. Publisher is perhaps another decent
+	// name, but naming things is hard.
+	Notifier interface {
+		// Register allows an instance to register itself to listen/observe
+		// events.
+		Register(Observer)
+		// Deregister allows an instance to remove itself from the collection
+		// of observers/listeners.
+		Deregister(Observer)
+		// Notify publishes new events to listeners. The method is not
+		// absolutely necessary, as each implementation could define this itself
+		// without losing functionality.
+		Notify(Event)
+	}
+)
+```
+
+## Usage
+
+For usage, see [observer/main.go](observer/main.go) or [view in the Playground](https://play.golang.org/p/cr8jEmDmw0).
+--- END skills/behavioral/observer.md ---
+
+--- BEGIN skills/behavioral/registry.md ---
+
+# Registry
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Behavioral>/<Registry>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/behavioral/registry.md ---
+
+--- BEGIN skills/behavioral/state.md ---
+
+# State
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/State/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/state/`
+--- END skills/behavioral/state.md ---
+
+--- BEGIN skills/behavioral/strategy.md ---
+
+# Strategy Pattern
+Strategy behavioral design pattern enables an algorithm's behavior to be selected at runtime.
+
+It defines algorithms, encapsulates them, and uses them interchangeably.
+
+## Implementation
+Implementation of an interchangeable operator object that operates on integers.
+
+```go
+type Operator interface {
+	Apply(int, int) int
+}
+
+type Operation struct {
+	Operator Operator
+}
+
+func (o *Operation) Operate(leftValue, rightValue int) int {
+	return o.Operator.Apply(leftValue, rightValue)
+}
+```
+
+## Usage
+### Addition Operator
+```go
+type Addition struct{}
+
+func (Addition) Apply(lval, rval int) int {
+	return lval + rval
+}
+```
+
+```go
+add := Operation{Addition{}}
+add.Operate(3, 5) // 8
+```
+
+### Multiplication Operator
+```go
+type Multiplication struct{}
+
+func (Multiplication) Apply(lval, rval int) int {
+	return lval * rval
+}
+```
+
+```go
+mult := Operation{Multiplication{}}
+
+mult.Operate(3, 5) // 15
+```
+
+## Rules of Thumb
+- Strategy pattern is similar to Template pattern except in its granularity.
+- Strategy pattern lets you change the guts of an object. Decorator pattern lets you change the skin.
+--- END skills/behavioral/strategy.md ---
+
+--- BEGIN skills/behavioral/template-method.md ---
+
+# Template Method
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/TemplateMethod/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/template-method/`
+--- END skills/behavioral/template-method.md ---
+
+--- BEGIN skills/behavioral/visitor.md ---
+
+# Visitor
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Behavioral/Visitor/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/behavioral/visitor/`
+--- END skills/behavioral/visitor.md ---
+
+--- BEGIN skills/concurrency/bounded-parallelism.md ---
+
+# Bounded Parallelism Pattern
+
+[Bounded parallelism](https://blog.golang.org/pipelines#TOC_9.) is similar to [parallelism](parallelism.md), but allows limits to be placed on allocation.
+
+# Implementation and Example
+
+An example showing implementation and usage can be found in [bounded_parallelism.go](bounded_parallelism.go).
+--- END skills/concurrency/bounded-parallelism.md ---
+
+--- BEGIN skills/concurrency/broadcast.md ---
+
+# Broadcast
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Concurrency>/<Broadcast>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/concurrency/broadcast.md ---
+
+--- BEGIN skills/concurrency/coroutines.md ---
+
+# Coroutines
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Concurrency>/<Coroutines>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/concurrency/coroutines.md ---
+
+--- BEGIN skills/concurrency/generator.md ---
+
+# Generator Pattern
+
+[Generators](https://en.wikipedia.org/wiki/Generator_(computer_programming)) yields a sequence of values one at a time.
+
+## Implementation 
+
+```go
+func Count(start int, end int) chan int {
+    ch := make(chan int)
+
+    go func(ch chan int) {
+        for i := start; i <= end ; i++ {
+            // Blocks on the operation
+            ch <- i
+        }
+
+		close(ch)
+	}(ch)
+
+	return ch
+}
+```
+
+## Usage
+
+```go
+fmt.Println("No bottles of beer on the wall")
+
+for i := range Count(1, 99) {
+    fmt.Println("Pass it around, put one up,", i, "bottles of beer on the wall")
+    // Pass it around, put one up, 1 bottles of beer on the wall
+    // Pass it around, put one up, 2 bottles of beer on the wall
+    // ...
+    // Pass it around, put one up, 99 bottles of beer on the wall
+}
+
+fmt.Println(100, "bottles of beer on the wall")
+```
+--- END skills/concurrency/generator.md ---
+
+--- BEGIN skills/concurrency/n-barrier.md ---
+
+# N-Barrier
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Concurrency>/<NBarrier>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/concurrency/n-barrier.md ---
+
+--- BEGIN skills/concurrency/parallelism.md ---
+
+# Parallelism Pattern
+
+[Parallelism](https://blog.golang.org/pipelines#TOC_8.) allows multiple "jobs" or tasks to be run concurrently and asynchronously.
+
+# Implementation and Example
+
+An example showing implementation and usage can be found in [parallelism.go](parallelism.go).
+--- END skills/concurrency/parallelism.md ---
+
+--- BEGIN skills/concurrency/producer-consumer.md ---
+
+# Producer Consumer
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Concurrency>/<ProducerConsumer>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/concurrency/producer-consumer.md ---
+
+--- BEGIN skills/concurrency/reactor.md ---
+
+# Reactor
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Concurrency>/<Reactor>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/concurrency/reactor.md ---
+
+--- BEGIN skills/creational/abstract-factory.md ---
+
+# Abstract Factory
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Creational/AbstractFactory/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/creational/abstract-factory/`
+--- END skills/creational/abstract-factory.md ---
+
+--- BEGIN skills/creational/builder.md ---
+
+# Builder Pattern
+
+Builder pattern separates the construction of a complex object from its
+representation so that the same construction process can create different
+representations.
+
+In Go, normally a configuration struct is used to achieve the same behavior,
+however passing a struct to the builder method fills the code with boilerplate
+`if cfg.Field != nil {...}` checks.
+
+## Implementation
+
+```go
+package car
+
+type Speed float64
+
+const (
+    MPH Speed = 1
+    KPH       = 1.60934
+)
+
+type Color string
+
+const (
+    BlueColor  Color = "blue"
+    GreenColor       = "green"
+    RedColor         = "red"
+)
+
+type Wheels string
+
+const (
+    SportsWheels Wheels = "sports"
+    SteelWheels         = "steel"
+)
+
+type Builder interface {
+    Color(Color) Builder
+    Wheels(Wheels) Builder
+    TopSpeed(Speed) Builder
+    Build() Interface
+}
+
+type Interface interface {
+    Drive() error
+    Stop() error
+}
+```
+
+## Usage
+
+```go
+assembly := car.NewBuilder().Paint(car.RedColor)
+
+familyCar := assembly.Wheels(car.SportsWheels).TopSpeed(50 * car.MPH).Build()
+familyCar.Drive()
+
+sportsCar := assembly.Wheels(car.SteelWheels).TopSpeed(150 * car.MPH).Build()
+sportsCar.Drive()
+```
+--- END skills/creational/builder.md ---
+
+--- BEGIN skills/creational/factory-method.md ---
+
+# Factory Method Pattern
+
+Factory method creational design pattern allows creating objects without having
+to specify the exact type of the object that will be created.
+
+## Implementation
+
+The example implementation shows how to provide a data store with different
+backends such as in-memory, disk storage.
+
+### Types
+
+```go
+package data
+
+import "io"
+
+type Store interface {
+    Open(string) (io.ReadWriteCloser, error)
+}
+```
+
+### Different Implementations
+
+```go
+package data
+
+type StorageType int
+
+const (
+    DiskStorage StorageType = 1 << iota
+    TempStorage
+    MemoryStorage
+)
+
+func NewStore(t StorageType) Store {
+    switch t {
+    case MemoryStorage:
+        return newMemoryStorage( /*...*/ )
+    case DiskStorage:
+        return newDiskStorage( /*...*/ )
+    default:
+        return newTempStorage( /*...*/ )
+    }
+}
+```
+
+## Usage
+
+With the factory method, the user can specify the type of storage they want.
+
+```go
+s, _ := data.NewStore(data.MemoryStorage)
+f, _ := s.Open("file")
+
+n, _ := f.Write([]byte("data"))
+defer f.Close()
+```
+--- END skills/creational/factory-method.md ---
+
+--- BEGIN skills/creational/object-pool.md ---
+
+# Object Pool Pattern
+
+The object pool creational design pattern is used to prepare and keep multiple
+instances according to the demand expectation.
+
+## Implementation
+
+```go
+package pool
+
+type Pool chan *Object
+
+func New(total int) *Pool {
+	p := make(Pool, total)
+
+	for i := 0; i < total; i++ {
+		p <- new(Object)
+	}
+
+	return &p
+}
+```
+
+## Usage
+
+Given below is a simple lifecycle example on an object pool.
+
+```go
+p := pool.New(2)
+
+select {
+case obj := <-p:
+	obj.Do( /*...*/ )
+
+	p <- obj
+default:
+	// No more objects left — retry later or fail
+	return
+}
+```
+
+## Rules of Thumb
+
+- Object pool pattern is useful in cases where object initialization is more
+  expensive than the object maintenance.
+- If there are spikes in demand as opposed to a steady demand, the maintenance
+  overhead might overweigh the benefits of an object pool.
+- It has positive effects on performance due to objects being initialized beforehand.
+--- END skills/creational/object-pool.md ---
+
+--- BEGIN skills/creational/prototype.md ---
+
+# Prototype
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Creational/Prototype/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/creational/prototype/`
+--- END skills/creational/prototype.md ---
+
+--- BEGIN skills/creational/singleton.md ---
+
+# Singleton Pattern
+
+Singleton creational design pattern restricts the instantiation of a type to a single object.
+
+## Implementation
+
+```go
+package singleton
+
+type singleton map[string]string
+
+var (
+    once sync.Once
+
+    instance singleton
+)
+
+func New() singleton {
+	once.Do(func() {
+		instance = make(singleton)
+	})
+
+	return instance
+}
+```
+
+## Usage
+
+```go
+s := singleton.New()
+
+s["this"] = "that"
+
+s2 := singleton.New()
+
+fmt.Println("This is ", s2["this"])
+// This is that
+```
+
+## Rules of Thumb
+
+- Singleton pattern represents a global state and most of the time reduces testability.
+--- END skills/creational/singleton.md ---
+
+--- BEGIN skills/idiom/functional-options.md ---
+
+# Functional Options
+
+Functional options are a method of implementing clean/eloquent APIs in Go.
+Options implemented as a function set the state of that option.
+
+## Implementation
+
+### Options
+
+```go
+package file
+
+type Options struct {
+	UID         int
+	GID         int
+	Flags       int
+	Contents    string
+	Permissions os.FileMode
+}
+
+type Option func(*Options)
+
+func UID(userID int) Option {
+	return func(args *Options) {
+		args.UID = userID
+	}
+}
+
+func GID(groupID int) Option {
+	return func(args *Options) {
+		args.GID = groupID
+	}
+}
+
+func Contents(c string) Option {
+	return func(args *Options) {
+		args.Contents = c
+	}
+}
+
+func Permissions(perms os.FileMode) Option {
+	return func(args *Options) {
+		args.Permissions = perms
+	}
+}
+```
+
+### Constructor
+
+```go
+package file
+
+func New(filepath string, setters ...Option) error {
+	// Default Options
+	args := &Options{
+		UID:         os.Getuid(),
+		GID:         os.Getgid(),
+		Contents:    "",
+		Permissions: 0666,
+		Flags:       os.O_CREATE | os.O_EXCL | os.O_WRONLY,
+	}
+
+	for _, setter := range setters {
+		setter(args)
+	}
+
+	f, err := os.OpenFile(filepath, args.Flags, args.Permissions)
+	if err != nil {
+		return err
+	} else {
+		defer f.Close()
+	}
+
+	if _, err := f.WriteString(args.Contents); err != nil {
+		return err
+	}
+
+	return f.Chown(args.UID, args.GID)
+}
+```
+
+## Usage
+
+```go
+emptyFile, err := file.New("/tmp/empty.txt")
+if err != nil {
+    panic(err)
+}
+
+fillerFile, err := file.New("/tmp/file.txt", file.UID(1000), file.Contents("Lorem Ipsum Dolor Amet"))
+if err != nil {
+    panic(err)
+}
+```
+--- END skills/idiom/functional-options.md ---
+
+--- BEGIN skills/idiom/specification.md ---
+
+# Specification
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Unsorted/Specification/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/idiom/specification/`
+--- END skills/idiom/specification.md ---
+
+--- BEGIN skills/messaging/fan-in.md ---
+
+Fan-In Messaging Patterns
+===================================
+Fan-In is a messaging pattern used to create a funnel for work amongst workers (clients: source, server: destination).
+
+We can model fan-in using the Go channels.
+
+```go
+// Merge different channels in one channel
+func Merge(cs ...<-chan int) <-chan int {
+	var wg sync.WaitGroup
+
+	out := make(chan int)
+
+	// Start an send goroutine for each input channel in cs. send
+	// copies values from c to out until c is closed, then calls wg.Done.
+	send := func(c <-chan int) {
+		for n := range c {
+			out <- n
+		}
+		wg.Done()
+	}
+
+	wg.Add(len(cs))
+	for _, c := range cs {
+		go send(c)
+	}
+
+	// Start a goroutine to close out once all the send goroutines are
+	// done.  This must start after the wg.Add call.
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+```
+
+The `Merge` function converts a list of channels to a single channel by starting a goroutine for each inbound channel that copies the values to the sole outbound channel.
+
+Once all the output goroutines have been started, `Merge` a goroutine is started to close the main channel.
+--- END skills/messaging/fan-in.md ---
+
+--- BEGIN skills/messaging/fan-out.md ---
+
+Fan-Out Messaging Pattern
+=========================
+Fan-Out is a messaging pattern used for distributing work amongst workers (producer: source, consumers: destination).
+
+We can model fan-out using the Go channels.
+
+```go
+// Split a channel into n channels that receive messages in a round-robin fashion.
+func Split(ch <-chan int, n int) []<-chan int {
+	cs := make([]chan int)
+	for i := 0; i < n; i++ {
+		cs = append(cs, make(chan int))
+	}
+
+	// Distributes the work in a round robin fashion among the stated number
+	// of channels until the main channel has been closed. In that case, close
+	// all channels and return.
+	distributeToChannels := func(ch <-chan int, cs []chan<- int) {
+		// Close every channel when the execution ends.
+		defer func(cs []chan<- int) {
+			for _, c := range cs {
+				close(c)
+			}
+		}(cs)
+
+		for {
+			for _, c := range cs {
+				select {
+				case val, ok := <-ch:
+					if !ok {
+						return
+					}
+
+					c <- val
+				}
+			}
+		}
+	}
+
+	go distributeToChannels(ch, cs)
+
+	return cs
+}
+```
+
+The `Split` function converts a single channel into a list of channels by using 
+a goroutine to copy received values to channels in the list in a round-robin fashion.
+--- END skills/messaging/fan-out.md ---
+
+--- BEGIN skills/messaging/futures-promises.md ---
+
+# Futures & Promises
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Messaging>/<FuturesPromises>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/messaging/futures-promises.md ---
+
+--- BEGIN skills/messaging/publish-subscribe.md ---
+
+Publish & Subscribe Messaging Pattern
+============
+Publish-Subscribe is a messaging pattern used to communicate messages between 
+different components without these components knowing anything about each other's identity.
+
+It is similar to the Observer behavioral design pattern. 
+The fundamental design principals of both Observer and Publish-Subscribe is the decoupling of
+those interested in being informed about `Event Messages` from the informer (Observers or Publishers).
+Meaning that you don't have to program the messages to be sent directly to specific receivers.
+
+To accomplish this, an intermediary, called a "message broker" or "event bus", 
+receives published messages, and then routes them on to subscribers.
+
+
+There are three components **messages**, **topics**, **users**.
+
+```go
+type Message struct {
+    // Contents
+}
+
+
+type Subscription struct {
+	ch chan<- Message
+
+	Inbox chan Message
+}
+
+func (s *Subscription) Publish(msg Message) error {
+	if _, ok := <-s.ch; !ok {
+		return errors.New("Topic has been closed")
+	}
+
+	s.ch <- msg
+
+	return nil
+}
+```
+
+```go
+type Topic struct {
+	Subscribers    []Session
+	MessageHistory []Message
+}
+
+func (t *Topic) Subscribe(uid uint64) (Subscription, error) {
+    // Get session and create one if it's the first
+
+    // Add session to the Topic & MessageHistory
+
+    // Create a subscription
+}
+
+func (t *Topic) Unsubscribe(Subscription) error {
+	// Implementation
+}
+
+func (t *Topic) Delete() error {
+	// Implementation
+}
+```
+
+```go
+type User struct {
+    ID uint64
+    Name string
+}
+
+type Session struct {
+    User User
+    Timestamp time.Time
+}
+```
+
+Improvements
+============
+Events can be published in a parallel fashion by utilizing stackless goroutines.
+
+Performance can be improved by dealing with straggler subscribers
+by using a buffered inbox and you stop sending events once the inbox is full.
+--- END skills/messaging/publish-subscribe.md ---
+
+--- BEGIN skills/messaging/push-pull.md ---
+
+# Push & Pull
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Messaging>/<PushPull>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/messaging/push-pull.md ---
+
+--- BEGIN skills/methodology/00-canonical-full.md ---
+
+# Go Service Architecture Methodology
+
+A reference for building backend services in Go: directory layout, layer separation, dependency injection, configuration, transport, storage, background jobs, logging, and build/deploy.
+
+This document is anonymized — it captures only the methodology, with no project-specific names. Use it as a template for new services and as a baseline for code reviews.
+
+---
+
+## 1. Principles
+
+1. **Strict layer separation**: transport → business logic → data access. Upper layers depend only on lower layers.
+2. **Explicit dependency injection** via constructors. No global singletons, service locators, or reflection-based wiring.
+3. **Minimal frameworks**: standard library plus small focused libraries (router, env parser, DB drivers). No heavyweight DI/ORM frameworks.
+4. **One service = one binary = one folder under `cmd/`**. A monorepo can host several services that share `pkg/common`.
+5. **`context.Context` is propagated everywhere** — first argument of any method that performs I/O.
+6. **Errors are explicit**: `error` is the last return value; wrap with `fmt.Errorf("...: %w", err)`.
+7. **Graceful shutdown is mandatory** for every service.
+
+---
+
+## 2. Directory Layout
+
+```
+.
+├── cmd/                                  # Entry points (one folder per binary)
+│   └── <service-name>/
+│       ├── main.go                       # Bootstrap, http.Server, signal handling
+│       └── app/
+│           ├── app.go                    # App struct, resource init, Close()
+│           └── di.go                     # Dependency graph assembled in stages
+│
+├── internal/                             # Private code (not importable from outside the module)
+│   └── <service-name>/
+│       ├── handler/                      # Transport layer (HTTP)
+│       │   ├── http.go                   # Root Handler struct
+│       │   ├── router.go                 # Route + middleware registration
+│       │   ├── middleware/               # Service-specific middleware
+│       │   ├── dto/                      # Request/response models
+│       │   └── <operation>/
+│       │       ├── handler.go            # Per-operation constructor + deps
+│       │       └── <operation>.go        # HTTP method implementation
+│       │
+│       ├── service/                      # Business logic
+│       │   └── <domain>/
+│       │       ├── service.go            # Service struct + constructor
+│       │       └── <operation>.go        # Domain methods
+│       │
+│       ├── fetcher/                      # Read-side data accessors
+│       │   └── <source>/
+│       │       ├── fetcher.go
+│       │       └── <operation>.go
+│       │
+│       ├── crons/                        # Scheduled background jobs
+│       │   ├── cron.go                   # Cron struct + constructor
+│       │   └── <task>.go                 # Job implementation
+│       │
+│       ├── validator/                    # Input validation
+│       └── docs/                         # Generated Swagger output
+│
+├── pkg/                                  # Reusable utilities (importable)
+│   └── common/
+│       ├── config/                       # Config loading (ENV + .env)
+│       ├── logger/                       # Simple coloured logger
+│       ├── slogger/                      # Structured logger (slog wrapper)
+│       ├── database/<driver>/            # DB connectors (postgres, clickhouse, ...)
+│       ├── cache/<driver>/               # Cache connectors (redis, local, ...)
+│       ├── lib/cache/                    # Generic in-memory TTL cache
+│       ├── httpKit/                      # HTTP helpers (decoders, renderers)
+│       ├── middleware/                   # Shared middleware + context-key constants
+│       ├── tracer/                       # Tracing helpers
+│       └── error.go                      # Unified ErrorResponse
+│
+├── go.mod
+├── go.sum
+├── makefile                              # Build/test/lint targets
+├── .gitlab-ci.yml                        # CI/CD pipeline
+└── test.sh                               # Optional smoke check
+```
+
+### Placement rules
+
+- **`cmd/`** holds bootstrap only. No business logic.
+- **`internal/`** is the domain layer. Go enforces that it is not importable from outside the module.
+- **`pkg/common/`** contains only utilities that are reused by ≥ 2 services and carry no domain knowledge.
+- An operation folder (`handler/<operation>/`, `service/<domain>/`) contains **at least two files**: `handler.go`/`service.go` (struct + constructor) and one or more files with the actual methods. This keeps reads small and minimizes diff churn.
+
+---
+
+## 3. Layers
+
+### 3.1 Transport (handler)
+
+**Responsibility**: parse and validate input, call a service, render the response. No business logic here.
+
+**Root struct** (`handler/http.go`):
+
+```go
+type Handler struct {
+    port              int
+    Logger            *slogger.Logger
+    OperationAHandler *opA.Handler
+    OperationBHandler *opB.Handler
+}
+```
+
+**Route registration** (`handler/router.go`):
+
+```go
+func (h *Handler) NewRouter(allowedCORS []string, guard *cache.Cache) http.Handler {
+    r := chi.NewRouter()
+
+    r.Use(
+        middleware.JSON(),
+        chiMiddleware.Timeout(20*time.Second),
+        middleware.Cors(allowedCORS),
+        middleware.RateLimit(guard),
+    )
+
+    r.Get("/health", healthHandler)
+
+    r.Route("/v1", func(r chi.Router) {
+        r.Post("/operation-a", h.OperationAHandler.Handle)
+        r.Get("/operation-b", h.OperationBHandler.Handle)
+    })
+
+    return r
+}
+```
+
+**Per-operation handler** (`handler/<operation>/handler.go`):
+
+```go
+type Handler struct {
+    Logger  *slogger.Logger
+    Service *domainService.Service
+}
+
+func NewHandler(logger *slogger.Logger, svc *domainService.Service) *Handler {
+    return &Handler{Logger: logger, Service: svc}
+}
+```
+
+**HTTP method** (`handler/<operation>/<operation>.go`):
+
+```go
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+    var req dto.Request
+    if err := httpKit.Decode(r, &req); err != nil {
+        render.Render(w, r, common.NewErrorResponse("decode error", http.StatusBadRequest))
+        return
+    }
+
+    if err := validator.Validate(&req); err != nil {
+        render.Render(w, r, common.NewErrorResponse(err.Error(), http.StatusBadRequest))
+        return
+    }
+
+    if err := h.Service.Do(r.Context(), req.ToCommand()); err != nil {
+        h.Logger.Error("operation failed", "err", err)
+        render.Render(w, r, common.NewErrorResponse("internal", http.StatusInternalServerError))
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}
+```
+
+### 3.2 Business logic (service)
+
+**Responsibility**: orchestration — calling fetchers, repositories, external APIs; applying business rules.
+
+**Struct + constructor** (`service/<domain>/service.go`):
+
+```go
+type Service struct {
+    Logger      *slogger.Logger
+    RedisClient *redis.Client
+    LocalCache  *cache.Cache
+}
+
+func NewService(logger *slogger.Logger, rc *redis.Client, lc *cache.Cache) *Service {
+    return &Service{Logger: logger, RedisClient: rc, LocalCache: lc}
+}
+```
+
+**Domain method** (`service/<domain>/<operation>.go`):
+
+```go
+type DoCommand struct {
+    ID      string
+    Payload string
+}
+
+func (s *Service) Do(ctx context.Context, cmd DoCommand) error {
+    if err := s.RedisClient.XAdd(ctx, &redis.XAddArgs{
+        Stream: streamName,
+        Values: map[string]any{"id": cmd.ID, "payload": cmd.Payload},
+    }).Err(); err != nil {
+        return fmt.Errorf("xadd: %w", err)
+    }
+    return nil
+}
+```
+
+**Rules**:
+- Constructor `NewService(...)` accepts every dependency. Returns `*Service`.
+- Methods take `context.Context` as the first argument when they do I/O.
+- Methods accept primitives or `Command` structs — never HTTP types.
+- Methods return `error` last.
+- No global state.
+
+### 3.3 Fetcher — specialized read layer
+
+When a read path is non-trivial or shared across services, factor it into a Fetcher. This makes reads easy to mock in tests and keeps services lean.
+
+```go
+type Fetcher struct {
+    Logger      *slogger.Logger
+    RedisClient *redis.Client
+    LocalCache  *cache.Cache
+}
+
+func NewFetcher(logger *slogger.Logger, rc *redis.Client, lc *cache.Cache) *Fetcher {
+    return &Fetcher{Logger: logger, RedisClient: rc, LocalCache: lc}
+}
+
+func (f *Fetcher) GetSize(ctx context.Context) (int, error) {
+    return f.LocalCache.ItemCount(), nil
+}
+```
+
+### 3.4 DTOs
+
+Flat structs with json tags. No methods, except simple converters such as `ToCommand()` / `FromEntity()`.
+
+```go
+type EventDTO struct {
+    EventID   string            `json:"event_id"`
+    EventName string            `json:"event_name"`
+    Payload   map[string]string `json:"payload"`
+}
+```
+
+If a request arrives base64-encoded or in any other non-standard form, decode it in the handler — never in the service.
+
+---
+
+## 4. Entry point and bootstrap
+
+### 4.1 `cmd/<service>/main.go`
+
+```go
+func main() {
+    application := app.Init()
+
+    server := http.Server{
+        Addr:              fmt.Sprintf(":%d", application.Cfg.HTTPPort),
+        Handler:           application.HttpHandler,
+        ReadTimeout:       10 * time.Second,
+        ReadHeaderTimeout: 5 * time.Second,
+        WriteTimeout:      15 * time.Second,
+        IdleTimeout:       60 * time.Second,
+        MaxHeaderBytes:    1 << 20,
+    }
+
+    go func() {
+        if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+            logger.Error.Fatalln(err)
+        }
+    }()
+
+    sigs := make(chan os.Signal, 1)
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+    <-sigs
+
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    _ = server.Shutdown(ctx)
+    application.Close()
+}
+```
+
+### 4.2 `cmd/<service>/app/app.go` — struct and initialization
+
+```go
+type App struct {
+    Cfg            config.Config
+    HttpHandler    http.Handler
+    Logger         *slogger.Logger
+    ctx            context.Context
+
+    db             *sqlx.DB
+    redisClient    *redis.Client
+    localCache     *cache.Cache
+    clickhouseConn clickhouse.Conn
+    cron           *cron.Cron
+}
+
+func Init() *App {
+    app := &App{ctx: context.Background()}
+
+    logger.Init(serviceName)
+    app.Logger = slogger.New(serviceName)
+
+    cfg, err := config.LoadConfig(serviceName)
+    if err != nil {
+        logger.Error.Fatalln(err)
+    }
+    app.Cfg = cfg
+
+    app.redisClient, _ = cacheRedis.Connect(cfg.Redis)
+    app.clickhouseConn, _ = clickhouseDB.Connect(cfg.Clickhouse)
+    app.localCache = local.Connect(cfg.LocalCache)
+
+    app.cron = cron.New(cron.WithLocation(time.UTC), cron.WithSeconds())
+
+    if err := app.InitializeDependencies(); err != nil {
+        logger.Error.Fatalln(err)
+    }
+
+    return app
+}
+
+func (app *App) Close() {
+    if app.db != nil { _ = app.db.Close() }
+    if app.redisClient != nil { _ = app.redisClient.Close() }
+    if app.clickhouseConn != nil { _ = app.clickhouseConn.Close() }
+}
+```
+
+### 4.3 `cmd/<service>/app/di.go` — dependency graph
+
+DI is **manual and staged**. No containers (wire/fx). Stages:
+
+1. **Services** (business logic, fetchers).
+2. **Handlers** (depend on services).
+3. **Cron jobs** (depend on services).
+4. **HTTP router** (depends on handlers).
+
+```go
+type Dependencies struct {
+    // services
+    DomainService *domain.Service
+    Fetcher       *src.Fetcher
+
+    // handlers
+    OperationAHandler *opA.Handler
+    OperationBHandler *opB.Handler
+
+    // crons
+    SyncCron func(context.Context) error
+}
+
+func (app *App) InitializeDependencies() error {
+    deps := app.initServices()
+    deps = app.initHandlers(deps)
+    if err := app.initCronJobs(deps); err != nil {
+        return err
+    }
+    app.HttpHandler = app.initHTTPHandler(deps)
+    app.cron.Start()
+    return nil
+}
+
+func (app *App) initServices() *Dependencies {
+    return &Dependencies{
+        DomainService: domain.NewService(app.Logger, app.redisClient, app.localCache),
+        Fetcher:       src.NewFetcher(app.Logger, app.localCache),
+    }
+}
+
+func (app *App) initHandlers(d *Dependencies) *Dependencies {
+    d.OperationAHandler = opA.NewHandler(app.Logger, d.DomainService)
+    d.OperationBHandler = opB.NewHandler(app.Logger, d.Fetcher)
+    return d
+}
+
+func (app *App) initCronJobs(d *Dependencies) error {
+    c := crons.NewCron(app.localCache, d.DomainService, app.Logger)
+    d.SyncCron = c.Sync
+
+    _, err := app.cron.AddFunc("*/10 * * * * *", func() {
+        if err := d.SyncCron(app.ctx); err != nil {
+            logger.Error.Println("sync cron failed: " + err.Error())
+        }
+    })
+    return err
+}
+
+func (app *App) initHTTPHandler(d *Dependencies) http.Handler {
+    h := handler.NewHandler(app.Logger, app.Cfg.HTTPPort)
+    h.OperationAHandler = d.OperationAHandler
+    h.OperationBHandler = d.OperationBHandler
+    return h.NewRouter(app.Cfg.AllowedCORSOrigins(), app.localCache)
+}
+```
+
+---
+
+## 5. Configuration
+
+### Approach
+
+- **Source of truth**: environment variables.
+- In dev mode, fall back to `.env` via `godotenv`.
+- Parsing: `caarlos0/env` with struct tags (`env:"..."`, `envDefault:"..."`).
+- Each subsystem owns its `Config` struct under `pkg/common/<subsystem>/`. The root `Config` aggregates them.
+
+### Root config
+
+```go
+type Config struct {
+    HTTPPort           int    `env:"HTTP_PORT"`
+    DevMode            string `env:"DEV_MODE"`
+    AllowedCorsOrigins string `env:"ALLOWED_CORS_ORIGINS"`
+
+    Postgres   postgres.Config
+    Clickhouse clickhouse.Config
+    Redis      redis.Config
+    LocalCache local.Config
+}
+
+func LoadConfig(serviceID string) (Config, error) {
+    envPath := filepath.Join(".", ".env")
+    if _, err := os.Stat(envPath); errors.Is(err, os.ErrNotExist) {
+        envPath = filepath.Join("/etc/<app>/", serviceID, ".env")
+    }
+    _ = godotenv.Load(envPath)
+
+    var cfg Config
+    if err := env.Parse(&cfg); err != nil {
+        return Config{}, fmt.Errorf("parse env: %w", err)
+    }
+    common.DevMode = cfg.DevMode
+    return cfg, nil
+}
+```
+
+### Subsystem configs
+
+```go
+// pkg/common/cache/redis/config.go
+type Config struct {
+    Host string `env:"REDIS_HOST" envDefault:"127.0.0.1"`
+    Port string `env:"REDIS_PORT" envDefault:"6379"`
+    DB   int    `env:"REDIS_DB"   envDefault:"0"`
+}
+
+// pkg/common/database/clickhouse/config.go
+type Config struct {
+    Host     string `env:"CLICKHOUSE_HOST"     envDefault:"localhost"`
+    Port     int    `env:"CLICKHOUSE_PORT"     envDefault:"9000"`
+    User     string `env:"CLICKHOUSE_USER"     envDefault:"default"`
+    Password string `env:"CLICKHOUSE_PASSWORD" envDefault:""`
+    DBName   string `env:"CLICKHOUSE_DB"       envDefault:"default"`
+}
+```
+
+### Derived methods
+
+For composite values (lists, parsed strings), use methods on the config with lazy initialization via `sync.Once`:
+
+```go
+func (c Config) AllowedCORSOrigins() []string {
+    c.corsOnce.Do(func() {
+        c.corsCached = strings.Split(c.AllowedCorsOrigins, ";")
+    })
+    return c.corsCached
+}
+```
+
+---
+
+## 6. External connections
+
+**All connectors live in `pkg/common/<subsystem>/connect.go`** with mandatory retry logic and timeouts.
+
+```go
+const (
+    MaxAttempts  = 5
+    RetryDelay   = 2 * time.Second
+    DialTimeout  = 5 * time.Second
+    ReadTimeout  = 3 * time.Second
+    WriteTimeout = 3 * time.Second
+)
+
+func Connect(cfg Config) (*redis.Client, error) {
+    var client *redis.Client
+    var err error
+    ctx := context.Background()
+
+    for attempt := 1; attempt <= MaxAttempts; attempt++ {
+        client = redis.NewClient(&redis.Options{
+            Addr:         cfg.Host + ":" + cfg.Port,
+            DB:           cfg.DB,
+            DialTimeout:  DialTimeout,
+            ReadTimeout:  ReadTimeout,
+            WriteTimeout: WriteTimeout,
+        })
+
+        if _, err = client.Ping(ctx).Result(); err == nil {
+            logger.Info.Printf("connected to redis after %d attempts", attempt)
+            return client, nil
+        }
+        time.Sleep(RetryDelay)
+    }
+    return nil, fmt.Errorf("connect redis after %d attempts: %w", MaxAttempts, err)
+}
+```
+
+---
+
+## 7. Storage
+
+### Defaults
+
+- **OLTP** → PostgreSQL via `jackc/pgx` or `jmoiron/sqlx`.
+- **Analytics / events** → ClickHouse via `ClickHouse/clickhouse-go/v2`. Always batch via `PrepareBatch`.
+- **Cache / streams / queues** → Redis (`go-redis/v9`). Use Streams (`XAdd`/`XReadGroup`) for durable queues.
+- **In-memory TTL cache** → in-house generic implementation with a janitor goroutine.
+
+### ClickHouse batch insert
+
+```go
+func (s *Service) InsertBatch(ctx context.Context, items []dto.Event) error {
+    batch, err := s.ClickHouseConn.PrepareBatch(ctx, "INSERT INTO events")
+    if err != nil {
+        return fmt.Errorf("prepare batch: %w", err)
+    }
+    for i, it := range items {
+        if err := batch.AppendStruct(&it); err != nil {
+            return fmt.Errorf("append %d: %w", i, err)
+        }
+    }
+    if err := batch.Send(); err != nil {
+        return fmt.Errorf("send batch: %w", err)
+    }
+    return nil
+}
+```
+
+### In-memory TTL cache
+
+API:
+- `Set(key, value, ttl)`
+- `Add(key, value, ttl)` — fails if the key exists
+- `Get(key) (any, bool)`
+- `GetCount(n int) []Item` — drain N keys for batch processing
+- `Delete(key)`
+- `ItemCount() int`
+- janitor goroutine — periodically evicts expired entries
+
+Implementation: `map[string]Item` guarded by `sync.RWMutex`; item = `{Object any, Expiration int64}`.
+
+---
+
+## 8. HTTP transport
+
+### Router
+
+`go-chi/chi/v5` — lightweight, idiomatic, fully compatible with `net/http`.
+
+### Standard middleware stack
+
+```go
+r.Use(
+    middleware.JSON(),                       // Content-Type
+    chiMiddleware.Timeout(20*time.Second),   // global timeout
+    middleware.Cors(allowedCORSOrigins),     // CORS
+    middleware.RateLimit(guard),             // per-IP rate limiting
+    // tracing.Middleware(),                 // optional
+)
+```
+
+### Custom middleware example
+
+```go
+func JSON() func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Content-Type", "application/json; charset=utf-8")
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Rate limiting (in-memory cache)
+
+Approach: per-IP counters in 1s / 1m / 1h windows. When a window exceeds its limit, write a block key with a TTL.
+
+```go
+func RateLimit(c *cache.Cache) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            ip := getClientIP(r)
+            if _, blocked := c.Get(keyBlocked + ip); blocked {
+                http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
+                return
+            }
+            if incr(c, keySec+ip, time.Second) > maxPerSecond {
+                c.Set(keyBlocked+ip, true, blockTTL)
+                http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
+                return
+            }
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Passing data via context
+
+Key constants live in `pkg/common/middleware/context_key/`:
+
+```go
+type contextKey string
+const ClientIP contextKey = "client_ip"
+
+// in middleware
+ctx := context.WithValue(r.Context(), context_key.ClientIP, ip)
+next.ServeHTTP(w, r.WithContext(ctx))
+
+// in handler
+ip, _ := r.Context().Value(context_key.ClientIP).(string)
+```
+
+### Unified error response
+
+```go
+// pkg/common/error.go
+type ErrorResponse struct {
+    StatusCode int    `json:"-"`
+    StatusText string `json:"status"`
+    ErrorText  string `json:"error"`
+}
+
+func NewErrorResponse(msg string, code int) render.Renderer {
+    return &ErrorResponse{
+        StatusCode: code,
+        StatusText: http.StatusText(code),
+        ErrorText:  msg,
+    }
+}
+
+func (e *ErrorResponse) Render(_ http.ResponseWriter, r *http.Request) error {
+    render.Status(r, e.StatusCode)
+    return nil
+}
+```
+
+---
+
+## 9. Background jobs (cron)
+
+`robfig/cron/v3` with second-level precision.
+
+```go
+// internal/<service>/crons/cron.go
+type Cron struct {
+    Cache   *cache.Cache
+    Service *domain.Service
+    Logger  *slogger.Logger
+}
+
+func NewCron(c *cache.Cache, s *domain.Service, l *slogger.Logger) *Cron {
+    return &Cron{Cache: c, Service: s, Logger: l}
+}
+
+// internal/<service>/crons/sync.go
+func (c *Cron) Sync(ctx context.Context) error {
+    items := c.Cache.GetCount(1000)
+    for _, it := range items {
+        if err := c.Service.Process(ctx, it); err != nil {
+            return fmt.Errorf("process: %w", err)
+        }
+    }
+    return nil
+}
+```
+
+Register jobs in `di.go` via `app.cron.AddFunc("...", func)`. Start the scheduler with `app.cron.Start()` after `InitializeDependencies`.
+
+---
+
+## 10. Logging
+
+### Two tiers
+
+1. **Simple logger** (`pkg/common/logger`) — for bootstrap, fatal errors, and low-level debugging. Coloured, built on top of `log.Logger`.
+
+```go
+logger.Init(serviceName)
+logger.Info.Printf("started on :%d", port)
+logger.Error.Println("connection failed: " + err.Error())
+```
+
+2. **Structured logger** (`pkg/common/slogger`) — for everything inside services and handlers. A wrapper over `log/slog` with JSON output, source location, and a shared `app_info` group.
+
+```go
+logger := slogger.New(serviceName)
+logger.Info("event accepted", "event_id", id, "ip", ip)
+logger.Error("xadd failed", "err", err, "stream", streamName)
+```
+
+### Rules
+
+- The **structured** logger is injected through DI into every service and handler.
+- The **simple** logger is used only in `cmd/.../app/*.go` and `pkg/common/*/connect.go`.
+- Never log the same error twice — whoever decides not to propagate it is responsible for logging.
+
+---
+
+## 11. Validation
+
+A dedicated `internal/<service>/validator/` package. Pure functions returning `error`. Tests use table-driven style and `Example*` for documentation.
+
+```go
+func ValidateEvent(e *dto.EventDTO) error {
+    if e.EventID == "" { return errors.New("event_id is required") }
+    if len(e.EventName) > 256 { return errors.New("event_name too long") }
+    return nil
+}
+```
+
+The handler runs validation **before** invoking the service. The service trusts its input.
+
+---
+
+## 12. Error handling
+
+- Return: `error` is always the last value.
+- Wrap: `fmt.Errorf("context: %w", err)` with a meaningful prefix.
+- Log: once, close to where the error stops being propagated.
+- HTTP: map through `common.NewErrorResponse(msg, code)` + `render.Render(w, r, ...)`.
+- Preserve `context.Canceled` / `context.DeadlineExceeded` — check with `errors.Is` where it matters.
+
+---
+
+## 13. Testing
+
+### makefile targets
+
+```makefile
+test:
+	go test ./... -v
+
+test-short:
+	go test ./... -short
+
+test-cover:
+	go test ./... -v -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+
+test-race:
+	go test ./... -race -short
+
+test-bench:
+	go test ./... -bench=. -benchmem
+```
+
+### Approach
+
+- **Unit tests** live next to the code (`*_test.go`).
+- **Table tests + `t.Run`** — the standard form.
+- **`Example*`** — both documentation and quick output checks.
+- **No heavy mocking frameworks** — interfaces plus hand-written fakes are enough.
+- **Integration tests** — separate build tag (`//go:build integration`) and real dependencies via docker-compose.
+
+---
+
+## 14. Build and deploy
+
+### makefile — typical targets
+
+```makefile
+# Run locally
+run:
+	go run ./cmd/<service>/main.go
+
+# Static Linux build (amd64)
+build:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	    go build -a -installsuffix cgo \
+	    -ldflags '-extldflags "-static" -w -s' \
+	    -o bin/amd64-alpine/<service> ./cmd/<service>/main.go
+
+# Alpine RISC build
+build-risc:
+	CGO_ENABLED=0 GOOS=linux \
+	    go build -ldflags='-s -w' \
+	    -o bin/risc-alpine/<service> ./cmd/<service>/main.go
+
+# Code quality
+fmt:
+	gofmt -s -w .
+
+vet:
+	go vet ./...
+
+lint:
+	golangci-lint run ./...
+
+check: fmt vet test-short
+
+clean:
+	rm -rf bin/
+	rm -f coverage.out coverage.html
+```
+
+### CI/CD (GitLab skeleton)
+
+```yaml
+stages: [build, deploy, test]
+
+build:
+  stage: build
+  script:
+    - docker build -t $REGISTRY/<service>:$IMAGE_TAG -f docker/<service>.dockerfile .
+    - docker push $REGISTRY/<service>:$IMAGE_TAG
+
+deploy:
+  stage: deploy
+  script:
+    - helm upgrade $RELEASE helm/ -n $NAMESPACE
+    - kubectl rollout restart deployment/<service> -n $NAMESPACE
+
+smoke:
+  stage: test
+  script:
+    - ./test.sh <service>
+```
+
+---
+
+## 15. Default stack
+
+| Layer             | Dependency                                |
+|-------------------|-------------------------------------------|
+| HTTP router       | `github.com/go-chi/chi/v5`                |
+| CORS              | `github.com/go-chi/cors`                  |
+| JSON rendering    | `github.com/go-chi/render`                |
+| ENV parsing       | `github.com/caarlos0/env/v11`             |
+| .env files        | `github.com/joho/godotenv`                |
+| Logging           | `log/slog` (stdlib)                       |
+| UUID              | `github.com/google/uuid`                  |
+| PostgreSQL        | `github.com/jackc/pgx/v5` + `jmoiron/sqlx`|
+| ClickHouse        | `github.com/ClickHouse/clickhouse-go/v2`  |
+| Redis             | `github.com/redis/go-redis/v9`            |
+| Cron              | `github.com/robfig/cron/v3`               |
+| Swagger           | `github.com/swaggo/swag` + `http-swagger/v2` |
+
+**Deliberately avoided**:
+- ORMs (`gorm`, `ent`) — prefer explicit SQL via `sqlx` / `pgx`.
+- DI frameworks (`uber/fx`, `google/wire`) — manual DI is simpler and more transparent.
+- Heavy loggers (`zap`, `logrus`) — `slog` is enough.
+- HTTP frameworks (`gin`, `echo`, `fiber`) — `chi` stays compatible with stdlib without imposing abstractions.
+
+---
+
+## 16. Naming conventions
+
+### Directories
+- Lowercase, no underscores (`eventreceiver`, not `event_receiver`).
+- Package name matches directory name.
+
+### Files
+| File                       | Purpose                                                      |
+|----------------------------|--------------------------------------------------------------|
+| `main.go`                  | Entry point, nothing else                                    |
+| `app.go`                   | `App` struct, `Init()`, `Close()`                            |
+| `di.go`                    | Dependency graph assembly                                    |
+| `router.go`                | Route registration                                           |
+| `http.go`                  | Root `Handler` struct                                        |
+| `handler.go`               | Per-operation constructor + dependencies                     |
+| `<operation>.go`           | HTTP method / domain method implementation                   |
+| `service.go`               | `Service` struct + constructor                               |
+| `fetcher.go`               | `Fetcher` struct + constructor                               |
+| `connect.go`               | External-system connection factory                           |
+| `config.go`                | `Config` struct and loader                                   |
+| `<entity>DTO.go`           | DTO models                                                   |
+
+### Constructors
+- All structs: `func New<Type>(...) *Type`.
+- External connections: `func Connect(cfg Config) (Client, error)`.
+
+---
+
+## 17. Cross-layer flow
+
+```
+HTTP request
+    ↓
+[middleware] → context enriched with request data (IP, request-id)
+    ↓
+[handler.<operation>.Handle]
+    ↓ decode → validate → build Command
+[service.<domain>.Method(ctx, cmd)]
+    ↓
+[fetcher / db client / redis client / external API]
+    ↓
+result bubbles back up: error or value
+    ↓
+handler renders the HTTP response
+```
+
+Rules:
+- A handler **never** calls a DB client or fetcher directly — only services. Exception: pure read-only endpoints may go straight to a fetcher.
+- A service **knows nothing about HTTP** — no `http.Request`, no `http.ResponseWriter`.
+- A fetcher **knows nothing about business rules** — only reads and shapes data.
+
+---
+
+## 18. Checklist for a new service
+
+- [ ] `cmd/<service>/` created with `main.go` and `app/{app.go,di.go}`.
+- [ ] `internal/<service>/` with `handler/`, `service/`, and (as needed) `fetcher/`, `crons/`, `validator/`.
+- [ ] Root `Config` aggregates subsystem configs; loaded from ENV / `.env`.
+- [ ] `Init()` sets up loggers, config, connections (with retries), and cron.
+- [ ] `InitializeDependencies()` builds the graph in four stages: services → handlers → crons → router.
+- [ ] HTTP server has timeouts and graceful shutdown on SIGINT/SIGTERM.
+- [ ] `/health` endpoint and a versioned `/v1` prefix.
+- [ ] Standard middleware stack: Content-Type, Timeout, CORS, RateLimit.
+- [ ] Unified `ErrorResponse` for every error response.
+- [ ] Structured logger injected into all services and handlers.
+- [ ] makefile with `run`, `build`, `test`, `lint`, `check` targets.
+- [ ] CI pipeline: build → push image → deploy → smoke test.
+- [ ] `go.mod` uses only the approved stack (see §15).
+--- END skills/methodology/00-canonical-full.md ---
+
+--- BEGIN skills/methodology/01-principles-and-layout.md ---
+
+## 1. Principles
+
+1. **Strict layer separation**: transport → business logic → data access. Upper layers depend only on lower layers.
+2. **Explicit dependency injection** via constructors. No global singletons, service locators, or reflection-based wiring.
+3. **Minimal frameworks**: standard library plus small focused libraries (router, env parser, DB drivers). No heavyweight DI/ORM frameworks.
+4. **One service = one binary = one folder under `cmd/`**. A monorepo can host several services that share `pkg/common`.
+5. **`context.Context` is propagated everywhere** — first argument of any method that performs I/O.
+6. **Errors are explicit**: `error` is the last return value; wrap with `fmt.Errorf("...: %w", err)`.
+7. **Graceful shutdown is mandatory** for every service.
+
+---
+
+## 2. Directory Layout
+
+```
+.
+├── cmd/                                  # Entry points (one folder per binary)
+│   └── <service-name>/
+│       ├── main.go                       # Bootstrap, http.Server, signal handling
+│       └── app/
+│           ├── app.go                    # App struct, resource init, Close()
+│           └── di.go                     # Dependency graph assembled in stages
+│
+├── internal/                             # Private code (not importable from outside the module)
+│   └── <service-name>/
+│       ├── handler/                      # Transport layer (HTTP)
+│       │   ├── http.go                   # Root Handler struct
+│       │   ├── router.go                 # Route + middleware registration
+│       │   ├── middleware/               # Service-specific middleware
+│       │   ├── dto/                      # Request/response models
+│       │   └── <operation>/
+│       │       ├── handler.go            # Per-operation constructor + deps
+│       │       └── <operation>.go        # HTTP method implementation
+│       │
+│       ├── service/                      # Business logic
+│       │   └── <domain>/
+│       │       ├── service.go            # Service struct + constructor
+│       │       └── <operation>.go        # Domain methods
+│       │
+│       ├── fetcher/                      # Read-side data accessors
+│       │   └── <source>/
+│       │       ├── fetcher.go
+│       │       └── <operation>.go
+│       │
+│       ├── crons/                        # Scheduled background jobs
+│       │   ├── cron.go                   # Cron struct + constructor
+│       │   └── <task>.go                 # Job implementation
+│       │
+│       ├── validator/                    # Input validation
+│       └── docs/                         # Generated Swagger output
+│
+├── pkg/                                  # Reusable utilities (importable)
+│   └── common/
+│       ├── config/                       # Config loading (ENV + .env)
+│       ├── logger/                       # Simple coloured logger
+│       ├── slogger/                      # Structured logger (slog wrapper)
+│       ├── database/<driver>/            # DB connectors (postgres, clickhouse, ...)
+│       ├── cache/<driver>/               # Cache connectors (redis, local, ...)
+│       ├── lib/cache/                    # Generic in-memory TTL cache
+│       ├── httpKit/                      # HTTP helpers (decoders, renderers)
+│       ├── middleware/                   # Shared middleware + context-key constants
+│       ├── tracer/                       # Tracing helpers
+│       └── error.go                      # Unified ErrorResponse
+│
+├── go.mod
+├── go.sum
+├── makefile                              # Build/test/lint targets
+├── .gitlab-ci.yml                        # CI/CD pipeline
+└── test.sh                               # Optional smoke check
+```
+
+### Placement rules
+
+- **`cmd/`** holds bootstrap only. No business logic.
+- **`internal/`** is the domain layer. Go enforces that it is not importable from outside the module.
+- **`pkg/common/`** contains only utilities that are reused by ≥ 2 services and carry no domain knowledge.
+- An operation folder (`handler/<operation>/`, `service/<domain>/`) contains **at least two files**: `handler.go`/`service.go` (struct + constructor) and one or more files with the actual methods. This keeps reads small and minimizes diff churn.
+
+---
+
+## 16. Naming conventions
+
+### Directories
+- Lowercase, no underscores (`eventreceiver`, not `event_receiver`).
+- Package name matches directory name.
+
+### Files
+| File                       | Purpose                                                      |
+|----------------------------|--------------------------------------------------------------|
+| `main.go`                  | Entry point, nothing else                                    |
+| `app.go`                   | `App` struct, `Init()`, `Close()`                            |
+| `di.go`                    | Dependency graph assembly                                    |
+| `router.go`                | Route registration                                           |
+| `http.go`                  | Root `Handler` struct                                        |
+| `handler.go`               | Per-operation constructor + dependencies                     |
+| `<operation>.go`           | HTTP method / domain method implementation                   |
+| `service.go`               | `Service` struct + constructor                               |
+| `fetcher.go`               | `Fetcher` struct + constructor                               |
+| `connect.go`               | External-system connection factory                           |
+| `config.go`                | `Config` struct and loader                                   |
+| `<entity>DTO.go`           | DTO models                                                   |
+
+### Constructors
+- All structs: `func New<Type>(...) *Type`.
+- External connections: `func Connect(cfg Config) (Client, error)`.
+
+---
+
+## 18. Checklist for a new service
+
+- [ ] `cmd/<service>/` created with `main.go` and `app/{app.go,di.go}`.
+- [ ] `internal/<service>/` with `handler/`, `service/`, and (as needed) `fetcher/`, `crons/`, `validator/`.
+- [ ] Root `Config` aggregates subsystem configs; loaded from ENV / `.env`.
+- [ ] `Init()` sets up loggers, config, connections (with retries), and cron.
+- [ ] `InitializeDependencies()` builds the graph in four stages: services → handlers → crons → router.
+- [ ] HTTP server has timeouts and graceful shutdown on SIGINT/SIGTERM.
+- [ ] `/health` endpoint and a versioned `/v1` prefix.
+- [ ] Standard middleware stack: Content-Type, Timeout, CORS, RateLimit.
+- [ ] Unified `ErrorResponse` for every error response.
+- [ ] Structured logger injected into all services and handlers.
+- [ ] makefile with `run`, `build`, `test`, `lint`, `check` targets.
+- [ ] CI pipeline: build → push image → deploy → smoke test.
+- [ ] `go.mod` uses only the approved stack (see §15).
+--- END skills/methodology/01-principles-and-layout.md ---
+
+--- BEGIN skills/methodology/02-layered-architecture.md ---
+
+## 3. Layers
+
+### 3.1 Transport (handler)
+
+**Responsibility**: parse and validate input, call a service, render the response. No business logic here.
+
+**Root struct** (`handler/http.go`):
+
+```go
+type Handler struct {
+    port              int
+    Logger            *slogger.Logger
+    OperationAHandler *opA.Handler
+    OperationBHandler *opB.Handler
+}
+```
+
+**Route registration** (`handler/router.go`):
+
+```go
+func (h *Handler) NewRouter(allowedCORS []string, guard *cache.Cache) http.Handler {
+    r := chi.NewRouter()
+
+    r.Use(
+        middleware.JSON(),
+        chiMiddleware.Timeout(20*time.Second),
+        middleware.Cors(allowedCORS),
+        middleware.RateLimit(guard),
+    )
+
+    r.Get("/health", healthHandler)
+
+    r.Route("/v1", func(r chi.Router) {
+        r.Post("/operation-a", h.OperationAHandler.Handle)
+        r.Get("/operation-b", h.OperationBHandler.Handle)
+    })
+
+    return r
+}
+```
+
+**Per-operation handler** (`handler/<operation>/handler.go`):
+
+```go
+type Handler struct {
+    Logger  *slogger.Logger
+    Service *domainService.Service
+}
+
+func NewHandler(logger *slogger.Logger, svc *domainService.Service) *Handler {
+    return &Handler{Logger: logger, Service: svc}
+}
+```
+
+**HTTP method** (`handler/<operation>/<operation>.go`):
+
+```go
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+    var req dto.Request
+    if err := httpKit.Decode(r, &req); err != nil {
+        render.Render(w, r, common.NewErrorResponse("decode error", http.StatusBadRequest))
+        return
+    }
+
+    if err := validator.Validate(&req); err != nil {
+        render.Render(w, r, common.NewErrorResponse(err.Error(), http.StatusBadRequest))
+        return
+    }
+
+    if err := h.Service.Do(r.Context(), req.ToCommand()); err != nil {
+        h.Logger.Error("operation failed", "err", err)
+        render.Render(w, r, common.NewErrorResponse("internal", http.StatusInternalServerError))
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}
+```
+
+### 3.2 Business logic (service)
+
+**Responsibility**: orchestration — calling fetchers, repositories, external APIs; applying business rules.
+
+**Struct + constructor** (`service/<domain>/service.go`):
+
+```go
+type Service struct {
+    Logger      *slogger.Logger
+    RedisClient *redis.Client
+    LocalCache  *cache.Cache
+}
+
+func NewService(logger *slogger.Logger, rc *redis.Client, lc *cache.Cache) *Service {
+    return &Service{Logger: logger, RedisClient: rc, LocalCache: lc}
+}
+```
+
+**Domain method** (`service/<domain>/<operation>.go`):
+
+```go
+type DoCommand struct {
+    ID      string
+    Payload string
+}
+
+func (s *Service) Do(ctx context.Context, cmd DoCommand) error {
+    if err := s.RedisClient.XAdd(ctx, &redis.XAddArgs{
+        Stream: streamName,
+        Values: map[string]any{"id": cmd.ID, "payload": cmd.Payload},
+    }).Err(); err != nil {
+        return fmt.Errorf("xadd: %w", err)
+    }
+    return nil
+}
+```
+
+**Rules**:
+- Constructor `NewService(...)` accepts every dependency. Returns `*Service`.
+- Methods take `context.Context` as the first argument when they do I/O.
+- Methods accept primitives or `Command` structs — never HTTP types.
+- Methods return `error` last.
+- No global state.
+
+### 3.3 Fetcher — specialized read layer
+
+When a read path is non-trivial or shared across services, factor it into a Fetcher. This makes reads easy to mock in tests and keeps services lean.
+
+```go
+type Fetcher struct {
+    Logger      *slogger.Logger
+    RedisClient *redis.Client
+    LocalCache  *cache.Cache
+}
+
+func NewFetcher(logger *slogger.Logger, rc *redis.Client, lc *cache.Cache) *Fetcher {
+    return &Fetcher{Logger: logger, RedisClient: rc, LocalCache: lc}
+}
+
+func (f *Fetcher) GetSize(ctx context.Context) (int, error) {
+    return f.LocalCache.ItemCount(), nil
+}
+```
+
+### 3.4 DTOs
+
+Flat structs with json tags. No methods, except simple converters such as `ToCommand()` / `FromEntity()`.
+
+```go
+type EventDTO struct {
+    EventID   string            `json:"event_id"`
+    EventName string            `json:"event_name"`
+    Payload   map[string]string `json:"payload"`
+}
+```
+
+If a request arrives base64-encoded or in any other non-standard form, decode it in the handler — never in the service.
+
+---
+
+## 17. Cross-layer flow
+
+```
+HTTP request
+    ↓
+[middleware] → context enriched with request data (IP, request-id)
+    ↓
+[handler.<operation>.Handle]
+    ↓ decode → validate → build Command
+[service.<domain>.Method(ctx, cmd)]
+    ↓
+[fetcher / db client / redis client / external API]
+    ↓
+result bubbles back up: error or value
+    ↓
+handler renders the HTTP response
+```
+
+Rules:
+- A handler **never** calls a DB client or fetcher directly — only services. Exception: pure read-only endpoints may go straight to a fetcher.
+- A service **knows nothing about HTTP** — no `http.Request`, no `http.ResponseWriter`.
+- A fetcher **knows nothing about business rules** — only reads and shapes data.
+--- END skills/methodology/02-layered-architecture.md ---
+
+--- BEGIN skills/methodology/03-bootstrap-and-di.md ---
+
+## 4. Entry point and bootstrap
+
+### 4.1 `cmd/<service>/main.go`
+
+```go
+func main() {
+    application := app.Init()
+
+    server := http.Server{
+        Addr:              fmt.Sprintf(":%d", application.Cfg.HTTPPort),
+        Handler:           application.HttpHandler,
+        ReadTimeout:       10 * time.Second,
+        ReadHeaderTimeout: 5 * time.Second,
+        WriteTimeout:      15 * time.Second,
+        IdleTimeout:       60 * time.Second,
+        MaxHeaderBytes:    1 << 20,
+    }
+
+    go func() {
+        if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+            logger.Error.Fatalln(err)
+        }
+    }()
+
+    sigs := make(chan os.Signal, 1)
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+    <-sigs
+
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    _ = server.Shutdown(ctx)
+    application.Close()
+}
+```
+
+### 4.2 `cmd/<service>/app/app.go` — struct and initialization
+
+```go
+type App struct {
+    Cfg            config.Config
+    HttpHandler    http.Handler
+    Logger         *slogger.Logger
+    ctx            context.Context
+
+    db             *sqlx.DB
+    redisClient    *redis.Client
+    localCache     *cache.Cache
+    clickhouseConn clickhouse.Conn
+    cron           *cron.Cron
+}
+
+func Init() *App {
+    app := &App{ctx: context.Background()}
+
+    logger.Init(serviceName)
+    app.Logger = slogger.New(serviceName)
+
+    cfg, err := config.LoadConfig(serviceName)
+    if err != nil {
+        logger.Error.Fatalln(err)
+    }
+    app.Cfg = cfg
+
+    app.redisClient, _ = cacheRedis.Connect(cfg.Redis)
+    app.clickhouseConn, _ = clickhouseDB.Connect(cfg.Clickhouse)
+    app.localCache = local.Connect(cfg.LocalCache)
+
+    app.cron = cron.New(cron.WithLocation(time.UTC), cron.WithSeconds())
+
+    if err := app.InitializeDependencies(); err != nil {
+        logger.Error.Fatalln(err)
+    }
+
+    return app
+}
+
+func (app *App) Close() {
+    if app.db != nil { _ = app.db.Close() }
+    if app.redisClient != nil { _ = app.redisClient.Close() }
+    if app.clickhouseConn != nil { _ = app.clickhouseConn.Close() }
+}
+```
+
+### 4.3 `cmd/<service>/app/di.go` — dependency graph
+
+DI is **manual and staged**. No containers (wire/fx). Stages:
+
+1. **Services** (business logic, fetchers).
+2. **Handlers** (depend on services).
+3. **Cron jobs** (depend on services).
+4. **HTTP router** (depends on handlers).
+
+```go
+type Dependencies struct {
+    // services
+    DomainService *domain.Service
+    Fetcher       *src.Fetcher
+
+    // handlers
+    OperationAHandler *opA.Handler
+    OperationBHandler *opB.Handler
+
+    // crons
+    SyncCron func(context.Context) error
+}
+
+func (app *App) InitializeDependencies() error {
+    deps := app.initServices()
+    deps = app.initHandlers(deps)
+    if err := app.initCronJobs(deps); err != nil {
+        return err
+    }
+    app.HttpHandler = app.initHTTPHandler(deps)
+    app.cron.Start()
+    return nil
+}
+
+func (app *App) initServices() *Dependencies {
+    return &Dependencies{
+        DomainService: domain.NewService(app.Logger, app.redisClient, app.localCache),
+        Fetcher:       src.NewFetcher(app.Logger, app.localCache),
+    }
+}
+
+func (app *App) initHandlers(d *Dependencies) *Dependencies {
+    d.OperationAHandler = opA.NewHandler(app.Logger, d.DomainService)
+    d.OperationBHandler = opB.NewHandler(app.Logger, d.Fetcher)
+    return d
+}
+
+func (app *App) initCronJobs(d *Dependencies) error {
+    c := crons.NewCron(app.localCache, d.DomainService, app.Logger)
+    d.SyncCron = c.Sync
+
+    _, err := app.cron.AddFunc("*/10 * * * * *", func() {
+        if err := d.SyncCron(app.ctx); err != nil {
+            logger.Error.Println("sync cron failed: " + err.Error())
+        }
+    })
+    return err
+}
+
+func (app *App) initHTTPHandler(d *Dependencies) http.Handler {
+    h := handler.NewHandler(app.Logger, app.Cfg.HTTPPort)
+    h.OperationAHandler = d.OperationAHandler
+    h.OperationBHandler = d.OperationBHandler
+    return h.NewRouter(app.Cfg.AllowedCORSOrigins(), app.localCache)
+}
+```
+--- END skills/methodology/03-bootstrap-and-di.md ---
+
+--- BEGIN skills/methodology/04-configuration.md ---
+
+## 5. Configuration
+
+### Approach
+
+- **Source of truth**: environment variables.
+- In dev mode, fall back to `.env` via `godotenv`.
+- Parsing: `caarlos0/env` with struct tags (`env:"..."`, `envDefault:"..."`).
+- Each subsystem owns its `Config` struct under `pkg/common/<subsystem>/`. The root `Config` aggregates them.
+
+### Root config
+
+```go
+type Config struct {
+    HTTPPort           int    `env:"HTTP_PORT"`
+    DevMode            string `env:"DEV_MODE"`
+    AllowedCorsOrigins string `env:"ALLOWED_CORS_ORIGINS"`
+
+    Postgres   postgres.Config
+    Clickhouse clickhouse.Config
+    Redis      redis.Config
+    LocalCache local.Config
+}
+
+func LoadConfig(serviceID string) (Config, error) {
+    envPath := filepath.Join(".", ".env")
+    if _, err := os.Stat(envPath); errors.Is(err, os.ErrNotExist) {
+        envPath = filepath.Join("/etc/<app>/", serviceID, ".env")
+    }
+    _ = godotenv.Load(envPath)
+
+    var cfg Config
+    if err := env.Parse(&cfg); err != nil {
+        return Config{}, fmt.Errorf("parse env: %w", err)
+    }
+    common.DevMode = cfg.DevMode
+    return cfg, nil
+}
+```
+
+### Subsystem configs
+
+```go
+// pkg/common/cache/redis/config.go
+type Config struct {
+    Host string `env:"REDIS_HOST" envDefault:"127.0.0.1"`
+    Port string `env:"REDIS_PORT" envDefault:"6379"`
+    DB   int    `env:"REDIS_DB"   envDefault:"0"`
+}
+
+// pkg/common/database/clickhouse/config.go
+type Config struct {
+    Host     string `env:"CLICKHOUSE_HOST"     envDefault:"localhost"`
+    Port     int    `env:"CLICKHOUSE_PORT"     envDefault:"9000"`
+    User     string `env:"CLICKHOUSE_USER"     envDefault:"default"`
+    Password string `env:"CLICKHOUSE_PASSWORD" envDefault:""`
+    DBName   string `env:"CLICKHOUSE_DB"       envDefault:"default"`
+}
+```
+
+### Derived methods
+
+For composite values (lists, parsed strings), use methods on the config with lazy initialization via `sync.Once`:
+
+```go
+func (c Config) AllowedCORSOrigins() []string {
+    c.corsOnce.Do(func() {
+        c.corsCached = strings.Split(c.AllowedCorsOrigins, ";")
+    })
+    return c.corsCached
+}
+```
+--- END skills/methodology/04-configuration.md ---
+
+--- BEGIN skills/methodology/05-external-connections.md ---
+
+## 6. External connections
+
+**All connectors live in `pkg/common/<subsystem>/connect.go`** with mandatory retry logic and timeouts.
+
+```go
+const (
+    MaxAttempts  = 5
+    RetryDelay   = 2 * time.Second
+    DialTimeout  = 5 * time.Second
+    ReadTimeout  = 3 * time.Second
+    WriteTimeout = 3 * time.Second
+)
+
+func Connect(cfg Config) (*redis.Client, error) {
+    var client *redis.Client
+    var err error
+    ctx := context.Background()
+
+    for attempt := 1; attempt <= MaxAttempts; attempt++ {
+        client = redis.NewClient(&redis.Options{
+            Addr:         cfg.Host + ":" + cfg.Port,
+            DB:           cfg.DB,
+            DialTimeout:  DialTimeout,
+            ReadTimeout:  ReadTimeout,
+            WriteTimeout: WriteTimeout,
+        })
+
+        if _, err = client.Ping(ctx).Result(); err == nil {
+            logger.Info.Printf("connected to redis after %d attempts", attempt)
+            return client, nil
+        }
+        time.Sleep(RetryDelay)
+    }
+    return nil, fmt.Errorf("connect redis after %d attempts: %w", MaxAttempts, err)
+}
+```
+--- END skills/methodology/05-external-connections.md ---
+
+--- BEGIN skills/methodology/06-storage.md ---
+
+## 7. Storage
+
+### Defaults
+
+- **OLTP** → PostgreSQL via `jackc/pgx` or `jmoiron/sqlx`.
+- **Analytics / events** → ClickHouse via `ClickHouse/clickhouse-go/v2`. Always batch via `PrepareBatch`.
+- **Cache / streams / queues** → Redis (`go-redis/v9`). Use Streams (`XAdd`/`XReadGroup`) for durable queues.
+- **In-memory TTL cache** → in-house generic implementation with a janitor goroutine.
+
+### ClickHouse batch insert
+
+```go
+func (s *Service) InsertBatch(ctx context.Context, items []dto.Event) error {
+    batch, err := s.ClickHouseConn.PrepareBatch(ctx, "INSERT INTO events")
+    if err != nil {
+        return fmt.Errorf("prepare batch: %w", err)
+    }
+    for i, it := range items {
+        if err := batch.AppendStruct(&it); err != nil {
+            return fmt.Errorf("append %d: %w", i, err)
+        }
+    }
+    if err := batch.Send(); err != nil {
+        return fmt.Errorf("send batch: %w", err)
+    }
+    return nil
+}
+```
+
+### In-memory TTL cache
+
+API:
+- `Set(key, value, ttl)`
+- `Add(key, value, ttl)` — fails if the key exists
+- `Get(key) (any, bool)`
+- `GetCount(n int) []Item` — drain N keys for batch processing
+- `Delete(key)`
+- `ItemCount() int`
+- janitor goroutine — periodically evicts expired entries
+
+Implementation: `map[string]Item` guarded by `sync.RWMutex`; item = `{Object any, Expiration int64}`.
+--- END skills/methodology/06-storage.md ---
+
+--- BEGIN skills/methodology/07-http-transport.md ---
+
+## 8. HTTP transport
+
+### Router
+
+`go-chi/chi/v5` — lightweight, idiomatic, fully compatible with `net/http`.
+
+### Standard middleware stack
+
+```go
+r.Use(
+    middleware.JSON(),                       // Content-Type
+    chiMiddleware.Timeout(20*time.Second),   // global timeout
+    middleware.Cors(allowedCORSOrigins),     // CORS
+    middleware.RateLimit(guard),             // per-IP rate limiting
+    // tracing.Middleware(),                 // optional
+)
+```
+
+### Custom middleware example
+
+```go
+func JSON() func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Content-Type", "application/json; charset=utf-8")
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Rate limiting (in-memory cache)
+
+Approach: per-IP counters in 1s / 1m / 1h windows. When a window exceeds its limit, write a block key with a TTL.
+
+```go
+func RateLimit(c *cache.Cache) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            ip := getClientIP(r)
+            if _, blocked := c.Get(keyBlocked + ip); blocked {
+                http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
+                return
+            }
+            if incr(c, keySec+ip, time.Second) > maxPerSecond {
+                c.Set(keyBlocked+ip, true, blockTTL)
+                http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
+                return
+            }
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Passing data via context
+
+Key constants live in `pkg/common/middleware/context_key/`:
+
+```go
+type contextKey string
+const ClientIP contextKey = "client_ip"
+
+// in middleware
+ctx := context.WithValue(r.Context(), context_key.ClientIP, ip)
+next.ServeHTTP(w, r.WithContext(ctx))
+
+// in handler
+ip, _ := r.Context().Value(context_key.ClientIP).(string)
+```
+
+### Unified error response
+
+```go
+// pkg/common/error.go
+type ErrorResponse struct {
+    StatusCode int    `json:"-"`
+    StatusText string `json:"status"`
+    ErrorText  string `json:"error"`
+}
+
+func NewErrorResponse(msg string, code int) render.Renderer {
+    return &ErrorResponse{
+        StatusCode: code,
+        StatusText: http.StatusText(code),
+        ErrorText:  msg,
+    }
+}
+
+func (e *ErrorResponse) Render(_ http.ResponseWriter, r *http.Request) error {
+    render.Status(r, e.StatusCode)
+    return nil
+}
+```
+--- END skills/methodology/07-http-transport.md ---
+
+--- BEGIN skills/methodology/08-background-jobs.md ---
+
+## 9. Background jobs (cron)
+
+`robfig/cron/v3` with second-level precision.
+
+```go
+// internal/<service>/crons/cron.go
+type Cron struct {
+    Cache   *cache.Cache
+    Service *domain.Service
+    Logger  *slogger.Logger
+}
+
+func NewCron(c *cache.Cache, s *domain.Service, l *slogger.Logger) *Cron {
+    return &Cron{Cache: c, Service: s, Logger: l}
+}
+
+// internal/<service>/crons/sync.go
+func (c *Cron) Sync(ctx context.Context) error {
+    items := c.Cache.GetCount(1000)
+    for _, it := range items {
+        if err := c.Service.Process(ctx, it); err != nil {
+            return fmt.Errorf("process: %w", err)
+        }
+    }
+    return nil
+}
+```
+
+Register jobs in `di.go` via `app.cron.AddFunc("...", func)`. Start the scheduler with `app.cron.Start()` after `InitializeDependencies`.
+--- END skills/methodology/08-background-jobs.md ---
+
+--- BEGIN skills/methodology/09-logging.md ---
+
+## 10. Logging
+
+### Two tiers
+
+1. **Simple logger** (`pkg/common/logger`) — for bootstrap, fatal errors, and low-level debugging. Coloured, built on top of `log.Logger`.
+
+```go
+logger.Init(serviceName)
+logger.Info.Printf("started on :%d", port)
+logger.Error.Println("connection failed: " + err.Error())
+```
+
+2. **Structured logger** (`pkg/common/slogger`) — for everything inside services and handlers. A wrapper over `log/slog` with JSON output, source location, and a shared `app_info` group.
+
+```go
+logger := slogger.New(serviceName)
+logger.Info("event accepted", "event_id", id, "ip", ip)
+logger.Error("xadd failed", "err", err, "stream", streamName)
+```
+
+### Rules
+
+- The **structured** logger is injected through DI into every service and handler.
+- The **simple** logger is used only in `cmd/.../app/*.go` and `pkg/common/*/connect.go`.
+- Never log the same error twice — whoever decides not to propagate it is responsible for logging.
+--- END skills/methodology/09-logging.md ---
+
+--- BEGIN skills/methodology/10-validation.md ---
+
+## 11. Validation
+
+A dedicated `internal/<service>/validator/` package. Pure functions returning `error`. Tests use table-driven style and `Example*` for documentation.
+
+```go
+func ValidateEvent(e *dto.EventDTO) error {
+    if e.EventID == "" { return errors.New("event_id is required") }
+    if len(e.EventName) > 256 { return errors.New("event_name too long") }
+    return nil
+}
+```
+
+The handler runs validation **before** invoking the service. The service trusts its input.
+--- END skills/methodology/10-validation.md ---
+
+--- BEGIN skills/methodology/11-error-handling.md ---
+
+## 12. Error handling
+
+- Return: `error` is always the last value.
+- Wrap: `fmt.Errorf("context: %w", err)` with a meaningful prefix.
+- Log: once, close to where the error stops being propagated.
+- HTTP: map through `common.NewErrorResponse(msg, code)` + `render.Render(w, r, ...)`.
+- Preserve `context.Canceled` / `context.DeadlineExceeded` — check with `errors.Is` where it matters.
+--- END skills/methodology/11-error-handling.md ---
+
+--- BEGIN skills/methodology/12-testing.md ---
+
+## 13. Testing
+
+### makefile targets
+
+```makefile
+test:
+	go test ./... -v
+
+test-short:
+	go test ./... -short
+
+test-cover:
+	go test ./... -v -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+
+test-race:
+	go test ./... -race -short
+
+test-bench:
+	go test ./... -bench=. -benchmem
+```
+
+### Approach
+
+- **Unit tests** live next to the code (`*_test.go`).
+- **Table tests + `t.Run`** — the standard form.
+- **`Example*`** — both documentation and quick output checks.
+- **No heavy mocking frameworks** — interfaces plus hand-written fakes are enough.
+- **Integration tests** — separate build tag (`//go:build integration`) and real dependencies via docker-compose.
+--- END skills/methodology/12-testing.md ---
+
+--- BEGIN skills/methodology/13-build-and-deploy.md ---
+
+## 14. Build and deploy
+
+### makefile — typical targets
+
+```makefile
+# Run locally
+run:
+	go run ./cmd/<service>/main.go
+
+# Static Linux build (amd64)
+build:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	    go build -a -installsuffix cgo \
+	    -ldflags '-extldflags "-static" -w -s' \
+	    -o bin/amd64-alpine/<service> ./cmd/<service>/main.go
+
+# Alpine RISC build
+build-risc:
+	CGO_ENABLED=0 GOOS=linux \
+	    go build -ldflags='-s -w' \
+	    -o bin/risc-alpine/<service> ./cmd/<service>/main.go
+
+# Code quality
+fmt:
+	gofmt -s -w .
+
+vet:
+	go vet ./...
+
+lint:
+	golangci-lint run ./...
+
+check: fmt vet test-short
+
+clean:
+	rm -rf bin/
+	rm -f coverage.out coverage.html
+```
+
+### CI/CD (GitLab skeleton)
+
+```yaml
+stages: [build, deploy, test]
+
+build:
+  stage: build
+  script:
+    - docker build -t $REGISTRY/<service>:$IMAGE_TAG -f docker/<service>.dockerfile .
+    - docker push $REGISTRY/<service>:$IMAGE_TAG
+
+deploy:
+  stage: deploy
+  script:
+    - helm upgrade $RELEASE helm/ -n $NAMESPACE
+    - kubectl rollout restart deployment/<service> -n $NAMESPACE
+
+smoke:
+  stage: test
+  script:
+    - ./test.sh <service>
+```
+
+---
+
+## 15. Default stack
+
+| Layer             | Dependency                                |
+|-------------------|-------------------------------------------|
+| HTTP router       | `github.com/go-chi/chi/v5`                |
+| CORS              | `github.com/go-chi/cors`                  |
+| JSON rendering    | `github.com/go-chi/render`                |
+| ENV parsing       | `github.com/caarlos0/env/v11`             |
+| .env files        | `github.com/joho/godotenv`                |
+| Logging           | `log/slog` (stdlib)                       |
+| UUID              | `github.com/google/uuid`                  |
+| PostgreSQL        | `github.com/jackc/pgx/v5` + `jmoiron/sqlx`|
+| ClickHouse        | `github.com/ClickHouse/clickhouse-go/v2`  |
+| Redis             | `github.com/redis/go-redis/v9`            |
+| Cron              | `github.com/robfig/cron/v3`               |
+| Swagger           | `github.com/swaggo/swag` + `http-swagger/v2` |
+
+**Deliberately avoided**:
+- ORMs (`gorm`, `ent`) — prefer explicit SQL via `sqlx` / `pgx`.
+- DI frameworks (`uber/fx`, `google/wire`) — manual DI is simpler and more transparent.
+- Heavy loggers (`zap`, `logrus`) — `slog` is enough.
+- HTTP frameworks (`gin`, `echo`, `fiber`) — `chi` stays compatible with stdlib without imposing abstractions.
+--- END skills/methodology/13-build-and-deploy.md ---
+
+--- BEGIN skills/profiling/timing.md ---
+
+# Timing Functions
+
+When optimizing code, sometimes a quick and dirty time measurement is required
+as opposed to utilizing profiler tools/frameworks to validate assumptions.
+
+Time measurements can be performed by utilizing `time` package and `defer` statements.
+
+## Implementation
+
+```go
+package profile
+
+import (
+    "time"
+    "log"
+)
+
+func Duration(invocation time.Time, name string) {
+    elapsed := time.Since(invocation)
+
+    log.Printf("%s lasted %s", name, elapsed)
+}
+```
+
+## Usage
+
+```go
+func BigIntFactorial(x big.Int) *big.Int {
+    // Arguments to a defer statement is immediately evaluated and stored.
+    // The deferred function receives the pre-evaluated values when its invoked.
+    defer profile.Duration(time.Now(), "IntFactorial")
+
+    y := big.NewInt(1)
+    for one := big.NewInt(1); x.Sign() > 0; x.Sub(x, one) {
+        y.Mul(y, x)
+    }
+
+    return x.Set(y)
+}
+```
+--- END skills/profiling/timing.md ---
+
+--- BEGIN skills/stability/bulkhead.md ---
+
+# Bulkhead
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Stability>/<Bulkhead>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/stability/bulkhead.md ---
+
+--- BEGIN skills/stability/circuit-breaker.md ---
+
+# Circuit Breaker Pattern
+
+Similar to electrical fuses that prevent fires when a circuit that is connected
+to the electrical grid starts drawing a high amount of power which causes the
+wires to heat up and combust, the circuit breaker design pattern is a fail-first
+mechanism that shuts down the circuit, request/response relationship or a
+service in the case of software development, to prevent bigger failures.
+
+**Note:** The words "circuit" and "service" are used synonymously throught this
+document.
+
+## Implementation
+
+Below is the implementation of a very simple circuit breaker to illustrate the purpose
+of the circuit breaker design pattern.
+
+### Operation Counter
+
+`circuit.Counter` is a simple counter that records success and failure states of
+a circuit along with a timestamp and calculates the consecutive number of
+failures.
+
+```go
+package circuit
+
+import (
+	"time"
+)
+
+type State int
+
+const (
+	UnknownState State = iota
+	FailureState
+	SuccessState
+)
+
+type Counter interface {
+	Count(State)
+	ConsecutiveFailures() uint32
+	LastActivity() time.Time
+	Reset()
+}
+```
+
+### Circuit Breaker
+
+Circuit is wrapped using the `circuit.Breaker` closure that keeps an internal operation counter.
+It returns a fast error if the circuit has failed consecutively more than the specified threshold.
+After a while it retries the request and records it.
+
+**Note:** Context type is used here to carry deadlines, cancelation signals, and
+other request-scoped values across API boundaries and between processes.
+
+```go
+package circuit
+
+import (
+	"context"
+	"time"
+)
+
+type Circuit func(context.Context) error
+
+func Breaker(c Circuit, failureThreshold uint32) Circuit {
+	cnt := NewCounter()
+
+	return func(ctx context) error {
+		if cnt.ConsecutiveFailures() >= failureThreshold {
+			canRetry := func(cnt Counter) {
+				backoffLevel := Cnt.ConsecutiveFailures() - failureThreshold
+
+				// Calculates when should the circuit breaker resume propagating requests
+				// to the service
+				shouldRetryAt := cnt.LastActivity().Add(time.Seconds * 2 << backoffLevel)
+
+				return time.Now().After(shouldRetryAt)
+			}
+
+			if !canRetry(cnt) {
+				// Fails fast instead of propagating requests to the circuit since
+				// not enough time has passed since the last failure to retry
+				return ErrServiceUnavailable
+			}
+		}
+
+		// Unless the failure threshold is exceeded the wrapped service mimics the
+		// old behavior and the difference in behavior is seen after consecutive failures
+		if err := c(ctx); err != nil {
+			cnt.Count(FailureState)
+			return err
+		}
+
+		cnt.Count(SuccessState)
+		return nil
+	}
+}
+```
+
+## Related Works
+
+- [sony/gobreaker](https://github.com/sony/gobreaker) is a well-tested and intuitive circuit breaker implementation for real-world use cases.
+--- END skills/stability/circuit-breaker.md ---
+
+--- BEGIN skills/stability/deadline.md ---
+
+# Deadline
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Stability>/<Deadline>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/stability/deadline.md ---
+
+--- BEGIN skills/stability/fail-fast.md ---
+
+# Fail-Fast
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Stability>/<FailFast>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/stability/fail-fast.md ---
+
+--- BEGIN skills/stability/handshaking.md ---
+
+# Handshaking
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Stability>/<Handshaking>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/stability/handshaking.md ---
+
+--- BEGIN skills/stability/steady-state.md ---
+
+# Steady-State
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Stability>/<SteadyState>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/stability/steady-state.md ---
+
+--- BEGIN skills/structural/adapter.md ---
+
+# Adapter
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Structural/Adapter/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/structural/adapter/`
+--- END skills/structural/adapter.md ---
+
+--- BEGIN skills/structural/bridge.md ---
+
+# Bridge
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Structural/Bridge/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/structural/bridge/`
+--- END skills/structural/bridge.md ---
+
+--- BEGIN skills/structural/composite.md ---
+
+# Composite
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Structural/Composite/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/structural/composite/`
+--- END skills/structural/composite.md ---
+
+--- BEGIN skills/structural/decorator.md ---
+
+# Decorator Pattern
+Decorator structural pattern allows extending the function of an existing object dynamically without altering its internals.
+
+Decorators provide a flexible method to extend functionality of objects.
+
+## Implementation
+`LogDecorate` decorates a function with the signature `func(int) int` that 
+manipulates integers and adds input/output logging capabilities.
+
+```go
+type Object func(int) int
+
+func LogDecorate(fn Object) Object {
+	return func(n int) int {
+		log.Println("Starting the execution with the integer", n)
+
+		result := fn(n)
+
+		log.Println("Execution is completed with the result", result)
+
+        return result
+	}
+}
+```
+
+## Usage
+```go
+func Double(n int) int {
+    return n * 2
+}
+
+f := LogDecorate(Double)
+
+f(5)
+// Starting execution with the integer 5
+// Execution is completed with the result 10
+```
+
+## Rules of Thumb
+- Unlike Adapter pattern, the object to be decorated is obtained by **injection**.
+- Decorators should not alter the interface of an object.
+--- END skills/structural/decorator.md ---
+
+--- BEGIN skills/structural/facade.md ---
+
+# Facade
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Structural/Facade/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/structural/facade/`
+--- END skills/structural/facade.md ---
+
+--- BEGIN skills/structural/flyweight.md ---
+
+# Flyweight
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/Structural/Flyweight/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+> **Existing example:** see `examples/structural/flyweight/`
+--- END skills/structural/flyweight.md ---
+
+--- BEGIN skills/structural/proxy.md ---
+
+# Proxy Pattern
+
+The [proxy pattern](https://en.wikipedia.org/wiki/Proxy_pattern) provides an object that controls access to another object, intercepting all calls.
+
+## Implementation
+
+The proxy could interface to anything: a network connection, a large object in memory, a file, or some other resource that is expensive or impossible to duplicate.
+
+Short idea of implementation:
+```go
+    // To use proxy and to object they must implement same methods
+    type IObject interface {
+        ObjDo(action string)
+    }
+
+    // Object represents real objects which proxy will delegate data
+    type Object struct {
+        action string
+    }
+
+    // ObjDo implements IObject interface and handel's all logic
+    func (obj *Object) ObjDo(action string) {
+        // Action behavior
+        fmt.Printf("I can, %s", action)
+    }
+
+    // ProxyObject represents proxy object with intercepts actions
+    type ProxyObject struct {
+        object *Object
+    }
+
+    // ObjDo are implemented IObject and intercept action before send in real Object
+    func (p *ProxyObject) ObjDo(action string) {
+        if p.object == nil {
+            p.object = new(Object)
+        }
+        if action == "Run" {
+            p.object.ObjDo(action) // Prints: I can, Run
+        }
+    }
+```
+
+## Usage
+More complex usage of proxy as example: User creates "Terminal" authorizes and PROXY send execution command to real Terminal object
+See [proxy/main.go](proxy/main.go) or [view in the Playground](https://play.golang.org/p/mnjKCMaOVE).
+--- END skills/structural/proxy.md ---
+
+--- BEGIN skills/synchronization/condition-variable.md ---
+
+# Condition Variable
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Synchronization>/<ConditionVariable>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/synchronization/condition-variable.md ---
+
+--- BEGIN skills/synchronization/monitor.md ---
+
+# Monitor
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Synchronization>/<Monitor>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/synchronization/monitor.md ---
+
+--- BEGIN skills/synchronization/mutex.md ---
+
+# Mutex
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Synchronization>/<Mutex>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/synchronization/mutex.md ---
+
+--- BEGIN skills/synchronization/read-write-lock.md ---
+
+# Read-Write Lock
+
+> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
+>
+> **Sources to mine when filling:**
+> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
+> - `go-old-pattern/go-patterns-2/<Synchronization>/<ReadWriteLock>/` (if present — runnable code + README)
+> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+--- END skills/synchronization/read-write-lock.md ---
+
+--- BEGIN skills/synchronization/semaphore.md ---
+
+# Semaphore Pattern
+A semaphore is a synchronization pattern/primitive that imposes mutual exclusion on a limited number of resources. 
+
+## Implementation
+
+```go
+package semaphore
+
+var (
+	ErrNoTickets      = errors.New("semaphore: could not aquire semaphore")
+	ErrIllegalRelease = errors.New("semaphore: can't release the semaphore without acquiring it first")
+)
+
+// Interface contains the behavior of a semaphore that can be acquired and/or released.
+type Interface interface {
+	Acquire() error
+	Release() error
+}
+
+type implementation struct {
+	sem     chan struct{}
+	timeout time.Duration
+}
+
+func (s *implementation) Acquire() error {
+	select {
+	case s.sem <- struct{}{}:
+		return nil
+	case <-time.After(s.timeout):
+		return ErrNoTickets
+	}
+}
+
+func (s *implementation) Release() error {
+	select {
+	case _ = <-s.sem:
+		return nil
+	case <-time.After(s.timeout):
+		return ErrIllegalRelease
+	}
+
+	return nil
+}
+
+func New(tickets int, timeout time.Duration) Interface {
+	return &implementation{
+		sem:     make(chan struct{}, tickets),
+		timeout: timeout,
+	}
+}
+```
+
+## Usage
+### Semaphore with Timeouts
+
+```go
+tickets, timeout := 1, 3*time.Second
+s := semaphore.New(tickets, timeout)
+
+if err := s.Acquire(); err != nil {
+    panic(err)
+}
+
+// Do important work
+
+if err := s.Release(); err != nil {
+    panic(err)
+}
+```
+### Semaphore without Timeouts (Non-Blocking)
+
+```go
+tickets, timeout := 0, 0
+s := semaphore.New(tickets, timeout)
+
+if err := s.Acquire(); err != nil {
+    if err != semaphore.ErrNoTickets {
+        panic(err)
+    }
+
+    // No tickets left, can't work :(
+    os.Exit(1)
+}
+```
+--- END skills/synchronization/semaphore.md ---
+
