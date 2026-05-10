@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#010102"/>
+  <line x1="80" y1="120" x2="1120" y2="120" stroke="#23252a" stroke-width="1"/>
+  <text x="80" y="100"  font-family="Geist Mono, monospace" font-size="22"
+        fill="#5e6ad2" letter-spacing="2">GO-SKILLS · 0.1.0</text>
+  <text x="80" y="320"  font-family="Editorial New, serif"  font-size="86"
+        fill="#f7f8f8" letter-spacing="-2">Architectural patterns</text>
+  <text x="80" y="410"  font-family="Editorial New, serif"  font-size="86"
+        fill="#f7f8f8" letter-spacing="-2">and methodology for</text>
+  <text x="80" y="500"  font-family="Editorial New, serif"  font-size="86"
+        fill="#f7f8f8" letter-spacing="-2">Go services.</text>
+  <text x="80" y="580"  font-family="Geist Mono, monospace" font-size="18"
+        fill="#8a8f98">9 categories · 50+ patterns · 18 chapters · 13 languages</text>
+</svg>
