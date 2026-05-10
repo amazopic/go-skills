@@ -22,7 +22,7 @@ Languages: 13 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar)
 
 ## Examples
 
-- [examples/](examples/): 23 runnable Go pattern packages with `_test.go`. One shared module: `github.com/amazopic/go-skills/examples`. Run: `cd examples && go test ./...`.
+- [examples/](examples/): 41 runnable Go pattern packages with race-safe `_test.go`. One shared module: `github.com/amazopic/go-skills/examples` (Go 1.22+). Run: `cd examples && go test -race ./...`.
 
 ## Site
 
