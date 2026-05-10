@@ -21,14 +21,20 @@ export const defaultLocale = 'en';
 
 export const messages = {
   en: {
-    'meta.title':   'go-skills — Senior Go skills for Claude Code',
-    'meta.description': 'Drop go-skills into Claude Code: 50+ Go patterns + 18-chapter service-architecture playbook. Senior-grade Go from your first prompt.',
+    'meta.title':   'go-skills — Senior Go developer. Rocket engine included.',
+    'meta.description': 'Add one skill — code Go like a senior with 10+ years across hundreds of production projects. Claude Code + you + go-skills = idiomatic Go, no rookie mistakes.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Senior-grade Go from your first prompt.',
-    'hero.lede':    "For Claude Code users who want production Go without the years. Add go-skills — your AI now codes like the Go community's best: 50+ patterns, an 18-chapter service-architecture playbook, decades of hard-won wisdom, addressable from every prompt.",
+    'hero.title':   'Senior Go developer. Rocket engine included.',
+    'hero.lede':    "Add one skill — code Go like a senior with 10+ years across hundreds of production projects. Claude Code + you + go-skills = no rookie mistakes, idiomatic Go from prompt one.",
     'hero.cta.catalog':     'Browse catalog',
     'hero.cta.methodology': 'Read methodology',
     'hero.cta.github':      'View on GitHub →',
+
+    'quickstart.eyebrow': 'Quick start',
+    'quickstart.title':   'Done with one Claude Code prompt.',
+    'quickstart.lede':    'Paste this into Claude Code. It clones go-skills, registers it as a skill source, reloads, and confirms — about 30 seconds, no manual edits.',
+    'quickstart.copy':    'Copy prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Three pillars',
     'vibe.title':   'Methodology · Patterns · Skills.',
@@ -106,14 +112,20 @@ export const messages = {
   },
 
   ru: {
-    'meta.title':   'go-skills — Senior-уровень Go для Claude Code',
-    'meta.description': 'Подключите go-skills к Claude Code: 50+ паттернов Go + 18-главный плейбук архитектуры сервисов. Senior-уровень с первого промпта.',
+    'meta.title':   'go-skills — Senior Go-разработчик. Ракетный двигатель в комплекте.',
+    'meta.description': 'Добавьте один skill — пишите Go как Senior с 10+ годами опыта в сотнях продакшн-проектов. Claude Code + вы + go-skills = идиоматичный Go, без ошибок новичка.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Senior-уровень Go с первого промпта.',
-    'hero.lede':    'Для пользователей Claude Code, которые хотят писать production-Go без лет стажа. Подключите go-skills — ИИ-редактор начинает писать как лучшие в Go-сообществе: 50+ паттернов, 18-главный плейбук архитектуры сервисов, десятилетия опыта, доступные из каждого промпта.',
+    'hero.title':   'Senior Go-разработчик. Ракетный двигатель в комплекте.',
+    'hero.lede':    'Добавьте один skill — пишите Go как Senior с 10+ годами опыта в сотнях продакшн-проектов. Claude Code + вы + go-skills = без ошибок новичка, идиоматичный Go с первого промпта.',
     'hero.cta.catalog':     'Каталог',
     'hero.cta.methodology': 'Методология',
     'hero.cta.github':      'GitHub →',
+
+    'quickstart.eyebrow': 'Быстрый старт',
+    'quickstart.title':   'Готово за один Claude Code промпт.',
+    'quickstart.lede':    'Вставьте это в Claude Code. Он клонирует go-skills, зарегистрирует как источник skills, перезагрузит настройки и подтвердит — около 30 секунд, без правок вручную.',
+    'quickstart.copy':    'Скопировать промпт',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Три столпа',
     'vibe.title':   'Методология · Паттерны · Skills.',
@@ -191,14 +203,20 @@ export const messages = {
   },
 
   fr: {
-    'meta.title':   'go-skills — Go senior-grade pour Claude Code',
-    'meta.description': 'Ajoutez go-skills à Claude Code : 50+ patterns Go + playbook d\'architecture en 18 chapitres. Du Go niveau senior dès votre premier prompt.',
+    'meta.title':   'go-skills — Senior Go developer. Moteur-fusée inclus.',
+    'meta.description': 'Ajoutez un skill — codez en Go comme un senior avec 10+ ans sur des centaines de projets en production. Claude Code + vous + go-skills = Go idiomatique, sans erreurs de débutant.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Go niveau senior dès votre premier prompt.',
-    'hero.lede':    'Pour les utilisateurs de Claude Code qui veulent du Go en production sans les années d\'expérience. Ajoutez go-skills — votre IA code désormais comme les meilleurs de la communauté Go : 50+ patterns, un playbook d\'architecture en 18 chapitres, des décennies de sagesse durement acquise, accessibles depuis chaque prompt.',
+    'hero.title':   'Senior Go developer. Moteur-fusée inclus.',
+    'hero.lede':    'Ajoutez un skill — codez en Go comme un senior avec 10+ ans sur des centaines de projets en production. Claude Code + vous + go-skills = sans erreurs de débutant, du Go idiomatique dès le premier prompt.',
     'hero.cta.catalog':     'Catalogue',
     'hero.cta.methodology': 'Méthodologie',
     'hero.cta.github':      'Voir sur GitHub →',
+
+    'quickstart.eyebrow': 'Démarrage rapide',
+    'quickstart.title':   'En place avec un seul prompt Claude Code.',
+    'quickstart.lede':    'Collez ceci dans Claude Code. Il clone go-skills, l\'enregistre comme source de skills, recharge et confirme — environ 30 secondes, sans modification manuelle.',
+    'quickstart.copy':    'Copier le prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Trois piliers',
     'vibe.title':   'Méthodologie · Patterns · Skills.',
@@ -276,14 +294,20 @@ export const messages = {
   },
 
   de: {
-    'meta.title':   'go-skills — Senior-Go ab dem ersten Prompt',
-    'meta.description': 'go-skills in Claude Code einbinden: 50+ Go-Patterns + 18-Kapitel-Service-Architektur-Playbook. Senior-Niveau vom ersten Prompt an.',
+    'meta.title':   'go-skills — Senior Go developer. Raketenantrieb inklusive.',
+    'meta.description': 'Einen Skill hinzufügen — Go schreiben wie ein Senior mit 10+ Jahren in Hunderten von Produktionsprojekten. Claude Code + Sie + go-skills = idiomatisches Go, ohne Anfängerfehler.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Senior-Go ab dem ersten Prompt.',
-    'hero.lede':    'Für Claude Code-Nutzer, die produktionsreifes Go ohne jahrelange Erfahrung schreiben wollen. go-skills hinzufügen — Ihre KI programmiert jetzt wie die Besten der Go-Community: 50+ Patterns, ein 18-Kapitel-Service-Architektur-Playbook, Jahrzehnte mühsam erarbeiteter Weisheit, direkt aus jedem Prompt abrufbar.',
+    'hero.title':   'Senior Go developer. Raketenantrieb inklusive.',
+    'hero.lede':    'Einen Skill hinzufügen — Go schreiben wie ein Senior mit 10+ Jahren in Hunderten von Produktionsprojekten. Claude Code + Sie + go-skills = ohne Anfängerfehler, idiomatisches Go ab dem ersten Prompt.',
     'hero.cta.catalog':     'Katalog',
     'hero.cta.methodology': 'Methodologie',
     'hero.cta.github':      'Auf GitHub ansehen →',
+
+    'quickstart.eyebrow': 'Schnellstart',
+    'quickstart.title':   'Mit einem einzigen Claude Code-Prompt erledigt.',
+    'quickstart.lede':    'Fügen Sie dies in Claude Code ein. Es klont go-skills, registriert es als Skill-Quelle, lädt neu und bestätigt — etwa 30 Sekunden, keine manuellen Änderungen.',
+    'quickstart.copy':    'Prompt kopieren',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Drei Säulen',
     'vibe.title':   'Methodologie · Patterns · Skills.',
@@ -361,14 +385,20 @@ export const messages = {
   },
 
   uk: {
-    'meta.title':   'go-skills — Senior-рівень Go для Claude Code',
-    'meta.description': 'Підключіть go-skills до Claude Code: 50+ патернів Go + 18-розділовий плейбук архітектури сервісів. Senior-рівень з першого промпта.',
+    'meta.title':   'go-skills — Senior Go-розробник. Ракетний двигун у комплекті.',
+    'meta.description': 'Додайте один skill — пишіть Go як Senior з 10+ роками досвіду в сотнях продакшн-проєктів. Claude Code + ви + go-skills = ідіоматичний Go, без помилок новачка.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Senior-рівень Go з першого промпта.',
-    'hero.lede':    'Для користувачів Claude Code, які хочуть писати production-Go без років стажу. Підключіть go-skills — ІІ-редактор починає писати як найкращі у Go-спільноті: 50+ патернів, 18-розділовий плейбук архітектури сервісів, десятиліття здобутого досвіду, доступні з кожного промпта.',
+    'hero.title':   'Senior Go-розробник. Ракетний двигун у комплекті.',
+    'hero.lede':    'Додайте один skill — пишіть Go як Senior з 10+ роками досвіду в сотнях продакшн-проєктів. Claude Code + ви + go-skills = без помилок новачка, ідіоматичний Go з першого промпта.',
     'hero.cta.catalog':     'Каталог',
     'hero.cta.methodology': 'Методологія',
     'hero.cta.github':      'GitHub →',
+
+    'quickstart.eyebrow': 'Швидкий старт',
+    'quickstart.title':   'Готово за один Claude Code промпт.',
+    'quickstart.lede':    'Вставте це в Claude Code. Він клонує go-skills, зареєструє як джерело skills, перезавантажить налаштування та підтвердить — близько 30 секунд, без правок вручну.',
+    'quickstart.copy':    'Скопіювати промпт',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Три стовпи',
     'vibe.title':   'Методологія · Патерни · Skills.',
@@ -446,14 +476,20 @@ export const messages = {
   },
 
   sl: {
-    'meta.title':   'go-skills — Senior Go za Claude Code',
-    'meta.description': 'Dodajte go-skills v Claude Code: 50+ Go vzorcev + 18-poglavni priročnik arhitekture storitev. Senior raven Go od prvega poziva.',
+    'meta.title':   'go-skills — Senior Go developer. Raketni motor v kompletu.',
+    'meta.description': 'Dodajte en skill — pišite Go kot Senior z 10+ leti na stotinah produkcijskih projektov. Claude Code + vi + go-skills = idiomatski Go, brez začetniških napak.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Senior raven Go od prvega poziva.',
-    'hero.lede':    'Za uporabnike Claude Code, ki želijo produkcijski Go brez let izkušenj. Dodajte go-skills — vaša umetna inteligenca zdaj piše kot najboljši v skupnosti Go: 50+ vzorcev, 18-poglavni priročnik arhitekture storitev, desetletja trdo pridobljene modrosti, dosegljive iz vsakega poziva.',
+    'hero.title':   'Senior Go developer. Raketni motor v kompletu.',
+    'hero.lede':    'Dodajte en skill — pišite Go kot Senior z 10+ leti na stotinah produkcijskih projektov. Claude Code + vi + go-skills = brez začetniških napak, idiomatski Go od prvega poziva.',
     'hero.cta.catalog':     'Katalog',
     'hero.cta.methodology': 'Metodologija',
     'hero.cta.github':      'Oglej si na GitHub →',
+
+    'quickstart.eyebrow': 'Hiter začetek',
+    'quickstart.title':   'Opravljeno z enim Claude Code pozivom.',
+    'quickstart.lede':    'Prilepite to v Claude Code. Klonira go-skills, ga registrira kot vir skills, znova naloži in potrdi — okoli 30 sekund, brez ročnih urejanj.',
+    'quickstart.copy':    'Kopiraj poziv',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Trije stebri',
     'vibe.title':   'Metodologija · Vzorci · Skills.',
@@ -531,14 +567,20 @@ export const messages = {
   },
 
   it: {
-    'meta.title':   'go-skills — Go da senior per Claude Code',
-    'meta.description': 'Aggiungi go-skills a Claude Code: 50+ pattern Go + playbook architettura servizi in 18 capitoli. Go da senior dal primo prompt.',
+    'meta.title':   'go-skills — Senior Go developer. Motore a razzo incluso.',
+    'meta.description': 'Aggiungi uno skill — scrivi Go come un senior con 10+ anni su centinaia di progetti in produzione. Claude Code + tu + go-skills = Go idiomatico, nessun errore da principiante.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Go da senior dal primo prompt.',
-    'hero.lede':    'Per gli utenti di Claude Code che vogliono Go in produzione senza anni di esperienza. Aggiungi go-skills — la tua IA ora scrive come i migliori della community Go: 50+ pattern, un playbook architettura servizi in 18 capitoli, decenni di saggezza guadagnata sul campo, accessibili da ogni prompt.',
+    'hero.title':   'Senior Go developer. Motore a razzo incluso.',
+    'hero.lede':    'Aggiungi uno skill — scrivi Go come un senior con 10+ anni su centinaia di progetti in produzione. Claude Code + tu + go-skills = nessun errore da principiante, Go idiomatico dal primo prompt.',
     'hero.cta.catalog':     'Catalogo',
     'hero.cta.methodology': 'Metodologia',
     'hero.cta.github':      'Vedi su GitHub →',
+
+    'quickstart.eyebrow': 'Avvio rapido',
+    'quickstart.title':   'Fatto con un solo prompt Claude Code.',
+    'quickstart.lede':    'Incolla questo in Claude Code. Clona go-skills, lo registra come sorgente di skill, ricarica e conferma — circa 30 secondi, nessuna modifica manuale.',
+    'quickstart.copy':    'Copia il prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Tre pilastri',
     'vibe.title':   'Metodologia · Pattern · Skills.',
@@ -616,14 +658,20 @@ export const messages = {
   },
 
   es: {
-    'meta.title':   'go-skills — Go de nivel senior para Claude Code',
-    'meta.description': 'Añade go-skills a Claude Code: 50+ patrones Go + playbook de arquitectura de servicios en 18 capítulos. Go de nivel senior desde el primer prompt.',
+    'meta.title':   'go-skills — Senior Go developer. Motor cohete incluido.',
+    'meta.description': 'Añade un skill — escribe Go como un senior con 10+ años en cientos de proyectos en producción. Claude Code + tú + go-skills = Go idiomático, sin errores de novato.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Go de nivel senior desde el primer prompt.',
-    'hero.lede':    'Para usuarios de Claude Code que quieren Go en producción sin años de experiencia. Añade go-skills — tu IA ahora programa como los mejores de la comunidad Go: 50+ patrones, un playbook de arquitectura de servicios en 18 capítulos, décadas de sabiduría ganada a pulso, accesibles desde cada prompt.',
+    'hero.title':   'Senior Go developer. Motor cohete incluido.',
+    'hero.lede':    'Añade un skill — escribe Go como un senior con 10+ años en cientos de proyectos en producción. Claude Code + tú + go-skills = sin errores de novato, Go idiomático desde el primer prompt.',
     'hero.cta.catalog':     'Catálogo',
     'hero.cta.methodology': 'Metodología',
     'hero.cta.github':      'Ver en GitHub →',
+
+    'quickstart.eyebrow': 'Inicio rápido',
+    'quickstart.title':   'Listo con un solo prompt de Claude Code.',
+    'quickstart.lede':    'Pega esto en Claude Code. Clona go-skills, lo registra como fuente de skills, recarga y confirma — unos 30 segundos, sin ediciones manuales.',
+    'quickstart.copy':    'Copiar prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'Tres pilares',
     'vibe.title':   'Metodología · Patrones · Skills.',
@@ -701,14 +749,20 @@ export const messages = {
   },
 
   zh: {
-    'meta.title':   'go-skills — 首个 Prompt 即达 Senior Go',
-    'meta.description': '将 go-skills 接入 Claude Code：50+ Go 模式 + 18 章服务架构手册。从第一个 Prompt 起，直达 Senior 水准。',
+    'meta.title':   'go-skills — Senior Go developer。火箭引擎已就位。',
+    'meta.description': '添加一个 skill — 像拥有 10+ 年、数百个生产项目经验的 Senior 一样写 Go。Claude Code + 你 + go-skills = 地道 Go，零新手错误。',
     'hero.brand':   'go-skills',
-    'hero.title':   '首个 Prompt 即达 Senior Go。',
-    'hero.lede':    '为不想熬年资就写出生产级 Go 的 Claude Code 用户而生。接入 go-skills — 你的 AI 即刻像 Go 社区顶尖工程师一样写代码：50+ 模式、18 章服务架构手册、数十年实战智慧，每个 Prompt 都能召唤。',
+    'hero.title':   'Senior Go developer。火箭引擎已就位。',
+    'hero.lede':    '添加一个 skill — 像拥有 10+ 年、数百个生产项目经验的 Senior 一样写 Go。Claude Code + 你 + go-skills = 零新手错误，从第一个 Prompt 起输出地道 Go。',
     'hero.cta.catalog':     '浏览目录',
     'hero.cta.methodology': '阅读方法论',
     'hero.cta.github':      '在 GitHub 上查看 →',
+
+    'quickstart.eyebrow': '快速开始',
+    'quickstart.title':   '一个 Claude Code Prompt 搞定。',
+    'quickstart.lede':    '将此内容粘贴到 Claude Code。它会克隆 go-skills、注册为 skill 来源、重载配置并确认 — 约 30 秒，无需手动编辑。',
+    'quickstart.copy':    '复制 Prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': '三大支柱',
     'vibe.title':   '方法论 · 模式 · Skills。',
@@ -786,14 +840,20 @@ export const messages = {
   },
 
   ja: {
-    'meta.title':   'go-skills — 初回プロンプトからシニアGo',
-    'meta.description': 'go-skillsをClaude Codeに追加：50以上のGoパターン＋18章のサービスアーキテクチャ・プレイブック。初回プロンプトからシニアレベルのGoを。',
+    'meta.title':   'go-skills — Senior Go developer。ロケットエンジン付き。',
+    'meta.description': 'スキルをひとつ追加するだけ — 数百のプロダクションプロジェクトで10年以上の経験を持つSeniorのようにGoを書けます。Claude Code + あなた + go-skills = 慣用的なGo、初心者ミスなし。',
     'hero.brand':   'go-skills',
-    'hero.title':   '初回プロンプトからシニアレベルのGo。',
-    'hero.lede':    '何年もの経験なしにプロダクションGoを書きたいClaude Codeユーザーへ。go-skillsを追加すると、あなたのAIはGoコミュニティの最高峰と同じコードを書き始めます：50以上のパターン、18章のサービスアーキテクチャ・プレイブック、数十年の実戦で培われた知恵、すべてのプロンプトから呼び出せます。',
+    'hero.title':   'Senior Go developer。ロケットエンジン付き。',
+    'hero.lede':    'スキルをひとつ追加するだけ — 数百のプロダクションプロジェクトで10年以上の経験を持つSeniorのようにGoを書けます。Claude Code + あなた + go-skills = 初心者ミスなし、最初のプロンプトから慣用的なGo。',
     'hero.cta.catalog':     'カタログを見る',
     'hero.cta.methodology': '方法論を読む',
     'hero.cta.github':      'GitHubで見る →',
+
+    'quickstart.eyebrow': 'クイックスタート',
+    'quickstart.title':   'Claude Code のプロンプト一発で完了。',
+    'quickstart.lede':    'これを Claude Code に貼り付けてください。go-skills をクローンし、スキルソースとして登録し、リロードして確認します — 約30秒、手動編集不要。',
+    'quickstart.copy':    'プロンプトをコピー',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': '三つの柱',
     'vibe.title':   '方法論 · パターン · Skills。',
@@ -871,14 +931,20 @@ export const messages = {
   },
 
   ko: {
-    'meta.title':   'go-skills — 첫 프롬프트부터 시니어 Go',
-    'meta.description': 'go-skills를 Claude Code에 추가하세요: 50개 이상의 Go 패턴 + 18장 서비스 아키텍처 플레이북. 첫 프롬프트부터 시니어 수준의 Go를.',
+    'meta.title':   'go-skills — Senior Go developer. 로켓 엔진 포함.',
+    'meta.description': '스킬 하나 추가 — 수백 개의 프로덕션 프로젝트에서 10년 이상의 경험을 가진 Senior처럼 Go를 작성하세요. Claude Code + 당신 + go-skills = 관용적 Go, 초보 실수 없음.',
     'hero.brand':   'go-skills',
-    'hero.title':   '첫 프롬프트부터 시니어 수준의 Go.',
-    'hero.lede':    '수년의 경험 없이도 프로덕션 Go를 작성하려는 Claude Code 사용자를 위해. go-skills를 추가하면 — 당신의 AI가 Go 커뮤니티 최고 수준으로 코딩합니다: 50개 이상의 패턴, 18장 서비스 아키텍처 플레이북, 수십 년의 값진 경험, 모든 프롬프트에서 활용 가능.',
+    'hero.title':   'Senior Go developer. 로켓 엔진 포함.',
+    'hero.lede':    '스킬 하나 추가 — 수백 개의 프로덕션 프로젝트에서 10년 이상의 경험을 가진 Senior처럼 Go를 작성하세요. Claude Code + 당신 + go-skills = 초보 실수 없음, 첫 프롬프트부터 관용적 Go.',
     'hero.cta.catalog':     '카탈로그 보기',
     'hero.cta.methodology': '방법론 읽기',
     'hero.cta.github':      'GitHub에서 보기 →',
+
+    'quickstart.eyebrow': '빠른 시작',
+    'quickstart.title':   'Claude Code 프롬프트 하나로 완료.',
+    'quickstart.lede':    '이것을 Claude Code에 붙여넣으세요. go-skills를 클론하고, skill 소스로 등록하고, 리로드 후 확인합니다 — 약 30초, 수동 편집 없음.',
+    'quickstart.copy':    '프롬프트 복사',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': '세 가지 기둥',
     'vibe.title':   '방법론 · 패턴 · Skills.',
@@ -956,14 +1022,20 @@ export const messages = {
   },
 
   ar: {
-    'meta.title':   'go-skills — Go بمستوى سينيور من أول prompt',
-    'meta.description': 'أضف go-skills إلى Claude Code: أكثر من 50 نمط Go + دليل معمارية الخدمات من 18 فصلاً. مستوى سينيور من أول prompt.',
+    'meta.title':   'go-skills — Senior Go developer. محرك الصاروخ مضمّن.',
+    'meta.description': 'أضف skill واحداً — اكتب Go كـ Senior بخبرة 10+ سنوات في مئات مشاريع الإنتاج. Claude Code + أنت + go-skills = Go اصطلاحي، بلا أخطاء مبتدئ.',
     'hero.brand':   'go-skills',
-    'hero.title':   'Go بمستوى سينيور من أول prompt.',
-    'hero.lede':    'لمستخدمي Claude Code الراغبين في كتابة Go للإنتاج دون سنوات من الخبرة. أضف go-skills — يبدأ ذكاؤك الاصطناعي الآن بالبرمجة كأمهر مطوري مجتمع Go: أكثر من 50 نمطاً، دليل معمارية الخدمات من 18 فصلاً، عقود من الحكمة المكتسبة بالتجربة، في متناول كل prompt.',
+    'hero.title':   'Senior Go developer. محرك الصاروخ مضمّن.',
+    'hero.lede':    'أضف skill واحداً — اكتب Go كـ Senior بخبرة 10+ سنوات في مئات مشاريع الإنتاج. Claude Code + أنت + go-skills = بلا أخطاء مبتدئ، Go اصطلاحي من أول prompt.',
     'hero.cta.catalog':     'الفهرس',
     'hero.cta.methodology': 'المنهجية',
     'hero.cta.github':      'عرض على GitHub →',
+
+    'quickstart.eyebrow': 'بداية سريعة',
+    'quickstart.title':   'جاهز بـ prompt واحد من Claude Code.',
+    'quickstart.lede':    'الصق هذا في Claude Code. سيستنسخ go-skills، يسجّله كمصدر skill، يعيد التحميل ويؤكد — نحو 30 ثانية، بلا تعديلات يدوية.',
+    'quickstart.copy':    'نسخ الـ prompt',
+    'quickstart.prompt':  'Install go-skills as a Claude Code skill source.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json\n3. Reload settings\n4. List the skills you now have access to\n\nAfter install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.',
 
     'vibe.eyebrow': 'ثلاثة محاور',
     'vibe.title':   'المنهجية · الأنماط · Skills.',
