@@ -325,11 +325,33 @@ for _, x := range xs {
 }
 wg.Wait()</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>N-Barrier</h4><p class="desc">Wait until N goroutines reach the same point.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Broadcast</h4><p class="desc">Send the same message to all subscribers.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Coroutines</h4><p class="desc">Cooperative goroutine pairs that yield between each other.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Producer Consumer</h4><p class="desc">Decouple work generation from work processing via a channel.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Reactor</h4><p class="desc">Single-threaded event loop dispatching to handlers.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>N-Barrier</h4><p class="desc">Wait until N goroutines reach the same point.</p>
+<pre><code>b := NewBarrier(N)
+for i := 0; i &lt; N; i++ {
+    go func(){ work(); b.Wait() }() // released only when all arrive
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Broadcast</h4><p class="desc">Send the same message to all subscribers.</p>
+<pre><code>sub := bcast.Subscribe()
+defer sub.Close()
+for v := range sub.Ch() { handle(v) }
+// elsewhere: bcast.Send(value)</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Coroutines</h4><p class="desc">Cooperative goroutine pairs that yield between each other.</p>
+<pre><code>Generate(ctx, func(yield func(int) bool) {
+    for i := 0; ; i++ {
+        if !yield(i) { return } // consumer signals stop
+    }
+})</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Producer Consumer</h4><p class="desc">Decouple work generation from work processing via a channel.</p>
+<pre><code>work := make(chan Job, 64) // bounded buffer = backpressure
+go produce(ctx, work)
+for j := range work { process(j) }</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Reactor</h4><p class="desc">Single-threaded event loop dispatching to handlers.</p>
+<pre><code>for {
+    select {
+    case e := &lt;-events: handlers[e.Kind](e)
+    case &lt;-ctx.Done(): return
+    }
+}</code></pre></article>
             </div>
           </div>
 
@@ -351,11 +373,33 @@ if err := fn(); err != nil {
     }
 }</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Bulkhead</h4><p class="desc">Isolate resource pools so one consumer cannot exhaust shared capacity.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Deadline</h4><p class="desc">Bound the maximum time a request can wait.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Fail-Fast</h4><p class="desc">Reject early if preconditions cannot be met.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Handshaking</h4><p class="desc">Negotiate capacity between client and server before work starts.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Steady-State</h4><p class="desc">Bound resource accumulation so the system reaches a stable equilibrium.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Bulkhead</h4><p class="desc">Isolate resource pools so one consumer cannot exhaust shared capacity.</p>
+<pre><code>slot := make(chan struct{}, K) // per-tenant capacity
+select {
+case slot &lt;- struct{}{}:
+    defer func(){ &lt;-slot }(); do()
+default:
+    return ErrOverloaded // shed, never queue
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Deadline</h4><p class="desc">Bound the maximum time a request can wait.</p>
+<pre><code>ctx, cancel := context.WithDeadline(parent, deadline)
+defer cancel()
+if err := dep.Call(ctx, req); errors.Is(err, context.DeadlineExceeded) {
+    return ErrTimeout
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Fail-Fast</h4><p class="desc">Reject early if preconditions cannot be met.</p>
+<pre><code>if !ready.Load()           { return ErrNotReady }
+if errs := cfg.Validate(); errs != nil { return errs }
+// proceed only when all preconditions hold</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Handshaking</h4><p class="desc">Negotiate capacity between client and server before work starts.</p>
+<pre><code>budget, lease := srv.Negotiate(client.Capacity())
+defer srv.Release(lease)
+sem := make(chan struct{}, budget)</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Steady-State</h4><p class="desc">Bound resource accumulation so the system reaches a stable equilibrium.</p>
+<pre><code>go janitor(ctx, time.Minute, func(){
+    cache.EvictExpired()
+    log.Rotate()
+})</code></pre></article>
             </div>
           </div>
 
@@ -399,8 +443,13 @@ if err := fn(); err != nil {
 <pre><code>bus.Subscribe("topic", func(m Msg){ /* ... */ })
 bus.Publish("topic", msg)</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Futures &amp; Promises</h4><p class="desc">Represent the eventual result of an async computation.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Push &amp; Pull</h4><p class="desc">Mirror Fan-Out / Fan-In with explicit pull-side semantics.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Futures &amp; Promises</h4><p class="desc">Represent the eventual result of an async computation.</p>
+<pre><code>f := NewFuture(func() (T, error) { return slowCall(ctx) })
+v, err := f.Get(ctx) // memoized: many callers see the same value</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Push &amp; Pull</h4><p class="desc">Mirror Fan-Out / Fan-In with explicit pull-side semantics.</p>
+<pre><code>push := make(chan Job)
+for i := 0; i &lt; N; i++ { go puller(push) } // first-come wins
+push &lt;- job // load-balanced across pullers</code></pre></article>
             </div>
           </div>
 
@@ -415,10 +464,27 @@ bus.Publish("topic", msg)</code></pre>
 sem &lt;- struct{}{}
 defer func(){ &lt;-sem }()</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Mutex</h4><p class="desc">sync.Mutex for exclusive access to shared state.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Read-Write Lock</h4><p class="desc">sync.RWMutex when reads dominate writes.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Monitor</h4><p class="desc">Bundle state and synchronization in one type.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Condition Variable</h4><p class="desc">sync.Cond for waiting on a state change.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Mutex</h4><p class="desc">sync.Mutex for exclusive access to shared state.</p>
+<pre><code>type Counter struct { mu sync.Mutex; n int }
+func (c *Counter) Inc() {
+    c.mu.Lock(); defer c.mu.Unlock()
+    c.n++
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Read-Write Lock</h4><p class="desc">sync.RWMutex when reads dominate writes.</p>
+<pre><code>mu.RLock(); v := m[k]; mu.RUnlock() // many concurrent readers
+mu.Lock();  m[k] = v; mu.Unlock()    // one writer, blocks readers</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Monitor</h4><p class="desc">Bundle state and synchronization in one type.</p>
+<pre><code>type Pool struct {
+    mu   sync.Mutex
+    free []*Conn
+}
+func (p *Pool) Get() *Conn { /* mu-guarded acquire */ }</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Condition Variable</h4><p class="desc">sync.Cond for waiting on a state change.</p>
+<pre><code>mu := sync.Mutex{}
+cond := sync.NewCond(&amp;mu)
+mu.Lock()
+for !ready { cond.Wait() } // ALWAYS loop the predicate
+mu.Unlock()</code></pre></article>
             </div>
           </div>
 
@@ -435,7 +501,10 @@ func WithTimeout(d time.Duration) Option {
 }
 NewServer(":8080", WithTimeout(5*time.Second))</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Specification</h4><p class="desc">Encapsulate a predicate over an entity for reuse.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Specification</h4><p class="desc">Encapsulate a predicate over an entity for reuse.</p>
+<pre><code>overdue := SpecFunc(func(i Invoice) bool { return i.DaysLate &gt; 30 })
+unsent  := SpecFunc(func(i Invoice) bool { return !i.IsSent })
+And(overdue, unsent)(invoice) // composable predicates</code></pre></article>
             </div>
           </div>
 
@@ -478,8 +547,18 @@ func Get() *T {
     return instance
 }</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Abstract Factory</h4><p class="desc">Family of related factories behind one interface.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Prototype</h4><p class="desc">Clone an existing instance instead of constructing anew.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Abstract Factory</h4><p class="desc">Family of related factories behind one interface.</p>
+<pre><code>type WidgetFactory interface {
+    NewButton() Button
+    NewMenu()   Menu
+}
+// MacFactory, WinFactory implement; caller picks one at runtime.</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Prototype</h4><p class="desc">Clone an existing instance instead of constructing anew.</p>
+<pre><code>func (s *Shape) Clone() *Shape {
+    cp := *s
+    cp.Vertices = append([]Vec{}, s.Vertices...) // deep-copy slice
+    return &amp;cp
+}</code></pre></article>
             </div>
           </div>
 
@@ -503,11 +582,38 @@ func Get() *T {
     return v
 }</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Adapter</h4><p class="desc">Translate one interface to another.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Bridge</h4><p class="desc">Decouple abstraction from implementation.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Composite</h4><p class="desc">Treat single objects and compositions uniformly.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Facade</h4><p class="desc">Front a subsystem with a simpler API.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Flyweight</h4><p class="desc">Share intrinsic state across many instances.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Adapter</h4><p class="desc">Translate one interface to another.</p>
+<pre><code>type LegacyReader struct{ legacy *LegacyClient }
+func (a *LegacyReader) Read(p []byte) (int, error) {
+    return a.legacy.Recv(p) // adapt Recv → io.Reader
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Bridge</h4><p class="desc">Decouple abstraction from implementation.</p>
+<pre><code>type Renderer interface{ DrawCircle(r float64) }
+type Shape    struct{ r Renderer } // abstraction holds impl
+func (s *Shape) Draw() { s.r.DrawCircle(1) }</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Composite</h4><p class="desc">Treat single objects and compositions uniformly.</p>
+<pre><code>type Node interface{ Size() int }
+type Dir  struct{ children []Node }
+func (d *Dir) Size() int {
+    sum := 0
+    for _, c := range d.children { sum += c.Size() }
+    return sum
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Facade</h4><p class="desc">Front a subsystem with a simpler API.</p>
+<pre><code>type Auth struct{ users *UserDB; tokens *TokenStore; rate *Limiter }
+func (a *Auth) Login(u, p string) (Token, error) {
+    // coordinates the 3 subsystems behind one method
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Flyweight</h4><p class="desc">Share intrinsic state across many instances.</p>
+<pre><code>var (
+    mu     sync.Mutex
+    glyphs = map[rune]*Glyph{}
+)
+func Get(r rune) *Glyph {
+    mu.Lock(); defer mu.Unlock()
+    if g, ok := glyphs[r]; ok { return g }
+    glyphs[r] = render(r); return glyphs[r]
+}</code></pre></article>
             </div>
           </div>
 
@@ -526,15 +632,60 @@ func Get() *T {
                 <p class="desc">Select algorithm at runtime via interface.</p>
 <pre><code>type Sorter interface{ Sort([]int) []int }</code></pre>
               </article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Chain of Responsibility</h4><p class="desc">Pass the request along until one handler consumes it.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Command</h4><p class="desc">Encapsulate an action and its arguments as an object.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Iterator</h4><p class="desc">Sequential access to elements of an aggregate.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Mediator</h4><p class="desc">Centralize complex peer-to-peer communication.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Memento</h4><p class="desc">Capture and restore an object's state.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>State</h4><p class="desc">Object behavior changes with internal state.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Template Method</h4><p class="desc">Skeleton in base, overridable steps in subtypes.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Visitor</h4><p class="desc">External operation over an object hierarchy.</p></article>
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Registry</h4><p class="desc">Global lookup table for shared singletons.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Chain of Responsibility</h4><p class="desc">Pass the request along until one handler consumes it.</p>
+<pre><code>func Chain(hs ...Handler) Handler {
+    return func(r Request) Response {
+        for _, h := range hs {
+            if resp := h(r); resp.Handled { return resp }
+        }
+        return notFound
+    }
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Command</h4><p class="desc">Encapsulate an action and its arguments as an object.</p>
+<pre><code>type Command func() error
+queue := []Command{move, save, notify}
+for _, c := range queue {
+    if err := c(); err != nil { rollback() }
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Iterator</h4><p class="desc">Sequential access to elements of an aggregate.</p>
+<pre><code>func gen(ctx context.Context, xs []int) &lt;-chan int {
+    out := make(chan int)
+    go func() {
+        defer close(out)
+        for _, v := range xs {
+            select { case out &lt;- v: case &lt;-ctx.Done(): return }
+        }
+    }()
+    return out
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Mediator</h4><p class="desc">Centralize complex peer-to-peer communication.</p>
+<pre><code>type Bus struct{ peers map[string]chan Msg }
+func (b *Bus) Send(to string, m Msg) { b.peers[to] &lt;- m }
+// peers don't know each other; only the bus</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Memento</h4><p class="desc">Capture and restore an object's state.</p>
+<pre><code>type Memento struct{ state []byte }
+func (e *Editor) Snapshot() Memento { return Memento{state: clone(e.buf)} }
+func (e *Editor) Restore(m Memento) { e.buf = m.state }</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>State</h4><p class="desc">Object behavior changes with internal state.</p>
+<pre><code>type State interface{ Next(in Event) State }
+func (m *Machine) Step(e Event) { m.state = m.state.Next(e) }
+// each State implements its own transitions</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Template Method</h4><p class="desc">Skeleton in base, overridable steps in subtypes.</p>
+<pre><code>type Importer struct{ Hooks ImportHooks }
+func (im *Importer) Run() {
+    im.Hooks.Open(); defer im.Hooks.Close()
+    for r := range im.Hooks.Read() { im.Hooks.Process(r) }
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Visitor</h4><p class="desc">External operation over an object hierarchy.</p>
+<pre><code>// Idiomatic Go: a type switch
+switch x := node.(type) {
+case *File: countFile(x)
+case *Dir:  countDir(x)
+}</code></pre></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Registry</h4><p class="desc">Global lookup table for shared singletons.</p>
+<pre><code>var drivers = NewRegistry[Driver]()
+func init(){ drivers.Register("postgres", &amp;PgDriver{}) }
+drv, ok := drivers.Get("postgres")</code></pre></article>
             </div>
           </div>
 
@@ -555,7 +706,10 @@ func Get() *T {
           <div class="cat-group">
             <h3 data-i18n="cat.antipatterns">Anti-Patterns</h3>
             <div class="pattern-grid">
-              <article class="card pattern-card"><span class="status filled">filled</span><h4>Cascading Failures</h4><p class="desc">Failure of one component triggers further failures downstream.</p></article>
+              <article class="card pattern-card"><span class="status filled">filled</span><h4>Cascading Failures</h4><p class="desc">Failure of one component triggers further failures downstream.</p>
+<pre><code>// ❌ no timeout, no bulkhead, retries-on-error → cascade
+resp, err := client.Get(downstream) // hang here blocks caller's goroutine
+for err != nil { resp, err = client.Get(downstream) } // amplifies load</code></pre></article>
             </div>
           </div>
 
