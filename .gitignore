@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+node_modules/
+.cache/
+.idea/
+.vscode/
+coverage.out
+coverage.html
+bin/
