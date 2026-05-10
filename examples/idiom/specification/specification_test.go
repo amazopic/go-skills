@@ -21,6 +21,6 @@ func TestSpecification(t *testing.T) {
 	result := sendToCollection.IsSatisfiedBy(invoice)
 
 	if !result {
-		t.Errorf("Expect result to equal %v, but %v.\n", false, true)
+		t.Errorf("Expect result to equal %v, but got %v.\n", true, false)
 	}
 }

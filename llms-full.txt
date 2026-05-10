@@ -39,77 +39,644 @@ See `../PATTERNS.md` for the full catalog with status (filled / partial / stub).
 
 # Cascading Failures
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<AntiPatterns>/<CascadingFailures>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Cascading failures are an anti-pattern: a downstream outage spreads upstream
+because callers block indefinitely, exhaust goroutine/connection pools, and
+eventually bring down layers that had no direct dependency on the failed
+service. Understanding the mechanism is the first step to preventing it.
+
+## Context
+
+Consider three services: `Frontend → OrderService → PaymentService`.
+PaymentService becomes slow — say, 30-second responses. Without mitigations:
+
+1. OrderService goroutines block for 30 seconds waiting for PaymentService.
+2. Inbound Frontend requests pile up because OrderService is not responding.
+3. Frontend goroutines and connection slots exhaust.
+4. The entire stack is unavailable — for a failure that originated in one service.
+
+The root cause is always two factors multiplied: **unbounded wait time** ×
+**unbounded concurrency**. Remove either factor and the cascade breaks.
+
+## The Four Mitigations
+
+### 1. Per-call timeout
+
+Cap how long a single goroutine can wait. Use `context.WithTimeout`:
+
+```go
+func (c *Client) Call(ctx context.Context) error {
+    ctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+    defer cancel()
+    return c.dep.Call(ctx)
+}
+```
+
+Goroutines now live at most 200ms, not 30 seconds. Memory stays bounded.
+
+### 2. Bulkhead (concurrency cap)
+
+Cap how many goroutines can be waiting simultaneously. Excess callers are
+shed immediately rather than queued:
+
+```go
+select {
+case sem <- struct{}{}:
+    defer func() { <-sem }()
+default:
+    return ErrPoolExhausted // fail-fast, not enqueue
+}
+```
+
+Even if the timeout fires slowly, at most `cap(sem)` goroutines block.
+
+### 3. Circuit breaker
+
+After N consecutive failures, stop sending altogether and fail fast. This
+gives the downstream time to recover without absorbing more load:
+
+```go
+if err := cb.Allow(); err != nil {
+    return ErrCircuitOpen // instant rejection, no RPC attempted
+}
+err := doRPC(ctx)
+cb.Record(err)
+return err
+```
+
+### 4. Retry budget
+
+Retries without backoff multiply load on a struggling service. Use exponential
+backoff with jitter and a global retry budget (max retries per time window)
+rather than per-call unlimited retries.
+
+## Composition
+
+All four mitigations compose cleanly as function wrappers:
+
+```
+FullyProtectedClient.Call()
+  → cb.Allow()          (circuit: fast-fail if open)
+  → sem acquire         (bulkhead: shed if full)
+  → WithTimeout(ctx)    (timeout: cap goroutine lifetime)
+  → dep.Call(ctx)       (actual RPC)
+  → cb.Record(err)      (circuit: record outcome)
+```
+
+Apply them in this order. The circuit breaker is outermost so it can prevent
+work before touching the semaphore.
+
+## When this anti-pattern occurs
+
+- Any outbound HTTP/gRPC/DB call without a `context.WithTimeout`.
+- A `http.Client` with no `Timeout` field set (default: infinite).
+- A goroutine pool shared across all tenants (no bulkhead).
+- A retry loop with `for { err = call(); if err != nil { continue } }` — infinite retries, no backoff.
+- A connection pool with `MaxOpenConns` unset (database/sql defaults to unlimited).
+
+## Gotchas
+
+- **`http.DefaultClient` has no timeout.** Always construct a `http.Client{Timeout: ...}` in production.
+- **`database/sql` default pool is unlimited.** Set `db.SetMaxOpenConns`, `db.SetMaxIdleConns`, `db.SetConnMaxLifetime`.
+- **Retries without jitter amplify the problem.** N services retrying in lockstep at T+1s create a retry thundering herd. Add `rand.Duration(0, 100ms)` jitter.
+- **Circuit breaker open ≠ error.** Callers should distinguish `ErrCircuitOpen` (back off and retry later) from `ErrServiceDown` (alert ops). They have different SRE responses.
+- **Timeout too aggressive.** A 50ms timeout on a call that legitimately needs 200ms causes cascade from healthy slowness. Calibrate timeouts from p99 latency in steady state, not best-case.
+
+## See also
+
+- `skills/stability/circuit-breaker.md`
+- `skills/stability/bulkhead.md`
+- `skills/stability/deadline.md`
+- `skills/stability/fail-fast.md`
+- `examples/anti-patterns/cascading-failures/`
 --- END skills/anti-patterns/cascading-failures.md ---
 
 --- BEGIN skills/behavioral/chain-of-responsibility.md ---
 
 # Chain of Responsibility
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/ChainOfResponsibility/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/chain-of-responsibility/`
+## Intent
+
+Decouple a sender from its receivers by giving multiple objects a chance to handle a request. Handlers are linked in a chain; each either handles the request or passes it to its successor, avoiding a hard-coded if-else ladder spread across the caller.
+
+## Context
+
+Chain of Responsibility appears whenever you have an ordered set of processing stages where (a) the right handler is not known at compile time, or (b) the set of handlers changes at runtime. Classic Go examples include HTTP middleware stacks, validation pipelines, log-level routing, and permission checks.
+
+Go's most idiomatic CoR form is the **middleware function**: `func(http.Handler) http.Handler`. The standard library's `net/http` package is built on exactly this shape. The GoF struct-with-a-next-pointer approach still makes sense when handlers need to carry significant per-instance state or when you need to introspect the chain.
+
+Two shapes to know:
+
+1. **Linked-node (GoF)**: each handler holds a `next Handler` pointer. Explicit, easy to debug, slightly verbose.
+2. **Slice of handlers + loop**: no explicit chaining; a coordinator iterates handlers until one returns. Simpler when all handlers live in one package and the chain is fixed.
+
+The example in `examples/behavioral/chain-of-responsibility/` uses the linked-node shape, which maps cleanly to the GoF description.
+
+## Implementation in Go
+
+```go
+// Handler is the chain link.
+type Handler interface {
+    SendRequest(message int) string
+}
+
+// ConcreteHandlerA handles message 1; forwards the rest.
+type ConcreteHandlerA struct {
+    next Handler
+}
+
+func (h *ConcreteHandlerA) SendRequest(message int) string {
+    if message == 1 {
+        return "Im handler 1"
+    }
+    if h.next != nil {
+        return h.next.SendRequest(message)
+    }
+    return ""
+}
+
+// Build the chain: A → B → C
+handlers := &ConcreteHandlerA{
+    next: &ConcreteHandlerB{
+        next: &ConcreteHandlerC{},
+    },
+}
+result := handlers.SendRequest(2) // "Im handler 2"
+```
+
+For HTTP-style middleware the idiomatic Go form is even leaner:
+
+```go
+type Middleware func(http.Handler) http.Handler
+
+func Chain(h http.Handler, mw ...Middleware) http.Handler {
+    for i := len(mw) - 1; i >= 0; i-- {
+        h = mw[i](h)
+    }
+    return h
+}
+```
+
+No structs, no interface boilerplate — just functions composed in order.
+
+## When to use
+
+- HTTP middleware (auth, logging, rate-limiting, tracing) — the canonical Go case.
+- Validation pipelines where early-exit on first failure is correct.
+- Log routing: DEBUG → INFO → WARN → ERROR with different sinks per level.
+- Plugin or handler registries where the chain is assembled at startup from configuration.
+- Any place you would otherwise write a long `switch` or `if-else` in the *caller*.
+
+## When NOT to use
+
+- When every handler must always run (use a slice + range loop instead).
+- When only one handler will ever exist — just call it directly.
+- When the chain never changes and all handlers are in one function — a plain `switch` is clearer.
+- When you need parallel fan-out — use goroutines + channels, not a chain.
+
+## Gotchas
+
+- **Nil next pointer**: always guard with `if h.next != nil` before forwarding, or use a sentinel no-op handler as the tail.
+- **Infinite loops**: if a handler accidentally adds itself as its own `next`, you get a stack overflow. Keep chain construction separate from handler logic.
+- **Silent drops**: a request that no handler claims returns silently. Return a sentinel error or log a warning at the tail.
+- **Ordering matters**: inserting a handler in the wrong position (e.g., auth after business logic) is a runtime bug the compiler cannot catch.
+- **Shared state**: if handlers share mutable state (a counter, a buffer), protect it with a mutex or move state into the request context.
+
+## See also
+
+- `skills/behavioral/command.md` — encapsulates a request as an object; often used *inside* CoR handlers.
+- `skills/behavioral/decorator.md` — similar wrapping structure but adds behavior rather than routing a request.
+- `examples/behavioral/chain-of-responsibility/`
 --- END skills/behavioral/chain-of-responsibility.md ---
 
 --- BEGIN skills/behavioral/command.md ---
 
 # Command
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/Command/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/command/`
+## Intent
+
+Encapsulate a request as an object (or function value) so that callers and executors are decoupled. The invoker knows only how to execute a command; it does not know what the command does or who performs it.
+
+## Context
+
+The GoF Command pattern encodes an operation as a struct implementing a single `Execute() T` method. In Go this collapses neatly to a **function value** in the common case. Use the full struct form only when you need:
+
+1. **Undo/Redo** — the struct can carry an inverse operation or the pre-change state.
+2. **Serialization / queuing** — commands must be encoded (JSON, protobuf) and dispatched across a queue or stored in a log.
+3. **Rich metadata** — timestamps, retry counts, correlation IDs that travel with the operation.
+4. **Multiple methods on one command** — `Execute`, `Undo`, `Validate`, `Describe`.
+
+For everything else, `type Command func() error` is the idiomatic Go answer and needs no pattern at all. Don't reach for an interface with a single method when a function type already is that interface.
+
+The example in `examples/behavioral/command/` shows the GoF struct approach with `Command` interface, `Invoker`, and `Receiver` — a good teaching example for cases where struct richness is warranted (the Invoker queues and can UnStore commands before execution).
+
+## Implementation in Go
+
+```go
+// Command provides the command interface.
+type Command interface {
+    Execute() string
+}
+
+// Receiver knows how to perform the actual work.
+type Receiver struct{}
+
+func (r *Receiver) ToggleOn() string  { return "Toggle On" }
+func (r *Receiver) ToggleOff() string { return "Toggle Off" }
+
+// Invoker queues and fires commands.
+type Invoker struct {
+    commands []Command
+}
+
+func (i *Invoker) StoreCommand(c Command)   { i.commands = append(i.commands, c) }
+func (i *Invoker) UnStoreCommand()          {
+    if len(i.commands) > 0 {
+        i.commands = i.commands[:len(i.commands)-1]
+    }
+}
+func (i *Invoker) Execute() string {
+    var out string
+    for _, c := range i.commands {
+        out += c.Execute() + "\n"
+    }
+    return out
+}
+```
+
+The lightweight Go-native alternative for a simple fire-and-forget queue:
+
+```go
+type Job func() error
+
+type Queue struct{ jobs []Job }
+
+func (q *Queue) Add(j Job)     { q.jobs = append(q.jobs, j) }
+func (q *Queue) Flush() error  {
+    for _, j := range q.jobs {
+        if err := j(); err != nil {
+            return err
+        }
+    }
+    q.jobs = q.jobs[:0]
+    return nil
+}
+```
+
+## When to use
+
+- Undo/Redo stacks (text editors, drawing tools, database transaction logs).
+- Work queues or job schedulers where operations are produced and consumed separately.
+- Macro recording — capture a sequence of user actions for replay.
+- Transactional batching — collect commands, validate the batch, then commit or abort.
+- Audit logging — the command object carries context (who, when, what) alongside the action.
+
+## When NOT to use
+
+- When you just need to call a function later — use `func() error` directly; no interface needed.
+- When there is no invoker / no deferred execution — call the receiver directly.
+- When undo is not required and the operation is stateless — a plain function is clearer and leaner.
+- Avoid wrapping every method call in a Command "just in case" — that is over-engineering.
+
+## Gotchas
+
+- **Captured mutable state**: command closures or structs that capture a pointer to shared state can race if the invoker is concurrent. Make commands capture values, not pointers, or synchronize.
+- **Nil receiver**: a `Command` interface value holding a nil `*ConcreteCommand` is non-nil; calling `Execute()` on it panics. Ensure `StoreCommand` rejects nil values.
+- **Growing queue**: an `Invoker` that only appends and never flushes leaks memory. Decide on clear ownership of when the queue drains.
+- **Undo ordering**: undo must replay in reverse order. Off-by-one bugs in stack management are the most common defect in undo implementations.
+- **Serialization coupling**: if commands must be serialized, add a `type` discriminator field and a registry; without it, JSON unmarshalling cannot reconstruct the concrete type.
+
+## See also
+
+- `skills/behavioral/chain-of-responsibility.md` — CoR passes a request through handlers; Command encapsulates the request itself.
+- `skills/behavioral/memento.md` — Memento stores the state snapshot that Command's Undo restores.
+- `examples/behavioral/command/`
 --- END skills/behavioral/command.md ---
 
 --- BEGIN skills/behavioral/iterator.md ---
 
 # Iterator
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/Iterator/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/iterator/`
+## Intent
+
+Provide a uniform way to traverse elements of a collection without exposing its underlying representation. Separate the traversal logic from the collection so clients can iterate without knowing whether they are walking a slice, a tree, a database cursor, or a network stream.
+
+## Context
+
+Go largely obsoletes the classic GoF Iterator for in-memory slices and maps — `range` does everything the pattern promises, with zero boilerplate. The pattern earns its place in three real Go scenarios:
+
+1. **Lazy / infinite sequences**: a generator that computes the next value on demand without materializing the full collection (pagination, fibonacci stream, file lines).
+2. **Tree and graph traversal**: a stateful cursor that tracks a position in a non-linear structure.
+3. **External resource cursors**: `sql.Rows`, `bufio.Scanner`, gRPC streaming responses — these are iterators over I/O that cannot be held in memory all at once.
+
+The example in `examples/behavioral/iterator/` implements the full GoF shape (`Iterator` + `Aggregate` interfaces, `BookIterator`, `BookShelf`) — useful for teaching and for cases where you need bidirectional traversal (`Next` / `Prev`) or arbitrary repositioning (`End`, `Reset`).
+
+Go 1.23 added `iter.Seq[V]` (push-style iterators over `range`) as the stdlib-blessed form for library iterators. For Go 1.21 target, channel-based generators or the classic cursor struct are the go-to approaches.
+
+## Implementation in Go
+
+**GoF cursor (from the example — bidirectional, stateful):**
+
+```go
+type Iterator interface {
+    Index() int
+    Value() interface{}
+    Has() bool
+    Next()
+    Prev()
+    Reset()
+    End()
+}
+
+type Aggregate interface {
+    Iterator() Iterator
+}
+```
+
+**Channel-based generator (lazy, unidirectional — idiomatic Go for pipelines):**
+
+```go
+// Integers generates an infinite sequence of integers starting at start.
+func Integers(start int) <-chan int {
+    ch := make(chan int)
+    go func() {
+        defer close(ch)
+        for i := start; ; i++ {
+            ch <- i
+        }
+    }()
+    return ch
+}
+
+// Usage: for n := range Integers(1) { if n > 5 { break } }
+```
+
+**Closure-based pull iterator (no goroutine, no allocation on every call):**
+
+```go
+// Lines returns a function that yields the next line on each call.
+// Returns ("", false) when exhausted.
+func Lines(s *bufio.Scanner) func() (string, bool) {
+    return func() (string, bool) {
+        if s.Scan() {
+            return s.Text(), true
+        }
+        return "", false
+    }
+}
+```
+
+## When to use
+
+- Traversing a tree, graph, or other non-linear structure where `range` does not apply.
+- Generating lazy / infinite sequences (pagination tokens, time ticks, prime numbers).
+- Wrapping an external resource (database rows, file scanner, network stream) with a uniform `Has() / Next() / Value()` API.
+- Bidirectional or random-access traversal that `range` cannot express.
+- Providing a stable traversal API to callers while you refactor the underlying collection type.
+
+## When NOT to use
+
+- Iterating over a slice, map, or channel — use `range` directly.
+- When the full collection fits in memory and ordering is simple — `sort.Slice` + `range` is cleaner.
+- When you only need to filter or transform — use a plain function, `slices.DeleteFunc`, or a pipeline of channels.
+- Avoid the GoF cursor struct when a closure or channel generator expresses the same intent with less ceremony.
+
+## Gotchas
+
+- **Goroutine leak in channel generators**: if the consumer breaks early, the goroutine blocks forever sending to an unread channel. Use a context with cancellation or pass a done channel.
+- **Concurrent modification**: the GoF cursor holds an index into a mutable collection. Modifying the collection during iteration (append, delete) invalidates the iterator silently.
+- **`interface{}` Value()**: the example uses `interface{}` for broad compatibility. In Go 1.18+ generics, prefer `Iterator[T]` to eliminate type assertions and panics.
+- **`Has()` / `Next()` ordering**: the `Has()` → read → `Next()` loop idiom differs from Go's `for scanner.Scan()` idiom. Be consistent within your API so callers don't off-by-one.
+- **Resource cleanup**: external iterators (DB rows, HTTP streams) must be closed even if iteration is interrupted. Implement `io.Closer` alongside the iterator interface.
+
+## See also
+
+- `skills/behavioral/visitor.md` — Visitor traverses a structure too, but applies an operation to each element rather than just yielding values.
+- `examples/behavioral/iterator/`
 --- END skills/behavioral/iterator.md ---
 
 --- BEGIN skills/behavioral/mediator.md ---
 
 # Mediator
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/Mediator/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/mediator/`
+## Intent
+
+Define an object that encapsulates how a set of objects interact. The mediator promotes loose coupling by keeping objects from referring to each other explicitly, and lets you vary the interaction independently from the participants.
+
+## Context
+
+Without a mediator, N peers that talk to each other need up to N² connections. The mediator collapses that to N connections (each peer ↔ mediator), and centralizes the coordination logic.
+
+**Mediator vs. Observer**: these are easy to conflate.
+
+- **Observer** is one-to-many: a subject broadcasts a change; observers react independently. No coordination logic.
+- **Mediator** is many-to-many with rules: peers notify the mediator, which applies domain logic and may trigger *different* peers in a specific sequence (e.g., farmer sells tomatoes → cannery processes them → shop gets stock). The mediator *orchestrates*.
+
+The example in `examples/behavioral/mediator/` models this distinction well: `Farmer.GrowTomato` notifies the mediator, which in turn calls `Cannery.MakeKetchup`, then the shop. The peers never hold references to each other — only to the mediator.
+
+In Go, a simple event bus (channel + goroutines) can replace Mediator when the coordination rules are trivial. Use the Mediator struct when the rules between participants are non-trivial and need to live in one place.
+
+## Implementation in Go
+
+```go
+// Mediator defines the notification contract.
+type Mediator interface {
+    Notify(msg string)
+}
+
+// ConcreteMediator embeds all colleagues and orchestrates their interactions.
+type ConcreteMediator struct {
+    *Farmer
+    *Cannery
+    *Shop
+}
+
+func (m *ConcreteMediator) Notify(msg string) {
+    switch msg {
+    case "Farmer: Tomato complete...":
+        m.Cannery.AddMoney(-15000)
+        m.Farmer.AddMoney(15000)
+        m.Cannery.MakeKetchup(m.Farmer.GetTomato())
+    case "Cannery: Ketchup complete...":
+        m.Shop.AddMoney(-30000)
+        m.Cannery.AddMoney(30000)
+        m.Shop.SellKetchup(m.Cannery.GetKetchup())
+    }
+}
+
+// ConnectColleagues wires peers to a single mediator instance.
+func ConnectColleagues(f *Farmer, c *Cannery, s *Shop) {
+    m := &ConcreteMediator{Farmer: f, Cannery: c, Shop: s}
+    f.SetMediator(m)
+    c.SetMediator(m)
+    s.SetMediator(m)
+}
+```
+
+For a lightweight event-bus Mediator (no domain rules, just routing):
+
+```go
+type Bus struct {
+    mu   sync.RWMutex
+    subs map[string][]func(payload any)
+}
+
+func (b *Bus) Subscribe(event string, fn func(any)) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    b.subs[event] = append(b.subs[event], fn)
+}
+
+func (b *Bus) Publish(event string, payload any) {
+    b.mu.RLock()
+    fns := b.subs[event]
+    b.mu.RUnlock()
+    for _, fn := range fns {
+        fn(payload)
+    }
+}
+```
+
+Use the Bus variant when you need loose coupling without encoded orchestration rules. Switch to the struct Mediator when the coordination logic has domain significance.
+
+## When to use
+
+- Air-traffic control, chat rooms, workflow engines — any domain where peers must coordinate through a central authority.
+- GUI components (form fields, buttons, dropdowns) that must stay in sync without direct field-to-field references.
+- Microservice orchestration: a saga coordinator is a Mediator — it knows the sequence of calls; individual services do not.
+- When refactoring a rat's nest of peer-to-peer calls — extract the coordination into a mediator to centralize it.
+
+## When NOT to use
+
+- When there are only two peers — just let them talk directly or use a simple callback.
+- When coordination rules are trivial (broadcast only) — use Observer or a channel fan-out.
+- When peers are in different services and the mediator becomes a distributed monolith — prefer an event bus with schema contracts instead.
+- Avoid a mediator that grows into a "god object" knowing every detail of every peer — split by domain boundary when that happens.
+
+## Gotchas
+
+- **God-object creep**: the mediator's `Notify` switch-case grows without bound as new message types are added. Refactor into a method-dispatch table or sub-mediators when it exceeds ~5 cases.
+- **Circular notification**: a colleague notifies the mediator, which calls back into the same colleague, which notifies the mediator again. Guard with a "processing" flag or event deduplication.
+- **Concurrency**: if colleagues run concurrently, `Notify` must be goroutine-safe. The struct Mediator in the example is not — add a mutex or serialize via a channel.
+- **Testing**: the mediator is the hardest part to unit test because it wires everything together. Inject a mock mediator into each colleague to test them in isolation.
+- **Cyrillic function names**: the example has `СonnectСolleagues` with Cyrillic `С` characters — this compiles fine in Go but can surprise code reviewers. Rename to ASCII in production code.
+
+## See also
+
+- `skills/behavioral/observer.md` — Observer for simple 1→N broadcast; Mediator for N→N coordination with rules.
+- `skills/behavioral/command.md` — Commands can be the payload the mediator routes between peers.
+- `examples/behavioral/mediator/`
 --- END skills/behavioral/mediator.md ---
 
 --- BEGIN skills/behavioral/memento.md ---
 
 # Memento
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/Memento/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/memento/`
+## Intent
+
+Without violating encapsulation, capture and externalize an object's internal state so it can be restored to that state later. The owner of the state (Originator) creates a snapshot (Memento); the snapshot is held by a Caretaker that treats it as opaque.
+
+## Context
+
+Memento appears wherever "undo" or "time travel" is needed: text editors, transaction rollback, game save points, configuration checkpoints. The key constraint is that the Caretaker must not be able to read or modify the snapshot content — it just holds it.
+
+In Go, encapsulation is enforced by package boundaries. The classic Go Memento approach:
+
+- Define `Memento` with **unexported fields** in the same package as the Originator.
+- Expose only `Snapshot() Memento` and `Restore(m Memento)` on the Originator.
+- The Caretaker (possibly in another package) holds `[]Memento` but cannot touch the fields.
+
+The example in `examples/behavioral/memento/` follows this shape: `Memento.state` is unexported, `Originator.CreateMemento()` captures it, `Originator.SetMemento()` restores it, and `Caretaker` holds a pointer to the snapshot.
+
+**Serialization consideration**: if snapshots must survive process restarts (game saves, database WAL), add a `MarshalBinary() / UnmarshalBinary()` pair to `Memento` keeping the data layout internal to the package. Avoid directly marshalling the Originator — that leaks its structure.
+
+## Implementation in Go
+
+```go
+// Originator owns the mutable state.
+type Originator struct {
+    State string
+}
+
+// CreateMemento captures current state as an opaque snapshot.
+func (o *Originator) CreateMemento() *Memento {
+    return &Memento{state: o.State}
+}
+
+// SetMemento restores state from a snapshot.
+func (o *Originator) SetMemento(m *Memento) {
+    o.State = m.GetState()
+}
+
+// Memento is the opaque snapshot — state is unexported.
+type Memento struct {
+    state string
+}
+
+func (m *Memento) GetState() string { return m.state }
+
+// Caretaker holds the snapshot; cannot read its contents.
+type Caretaker struct {
+    Memento *Memento
+}
+```
+
+Usage:
+
+```go
+o := &Originator{State: "On"}
+ct := &Caretaker{Memento: o.CreateMemento()} // save
+o.State = "Off"
+o.SetMemento(ct.Memento)                      // restore
+// o.State == "On"
+```
+
+For undo stacks, the Caretaker holds a slice:
+
+```go
+type History struct{ stack []*Memento }
+
+func (h *History) Push(m *Memento)       { h.stack = append(h.stack, m) }
+func (h *History) Pop() (*Memento, bool) {
+    if len(h.stack) == 0 {
+        return nil, false
+    }
+    n := len(h.stack) - 1
+    m := h.stack[n]
+    h.stack = h.stack[:n]
+    return m, true
+}
+```
+
+## When to use
+
+- Undo/Redo in editors, drawing apps, form wizards.
+- Database-style savepoints: begin, do work, rollback to savepoint.
+- Game checkpoints: serialize player state before entering a boss battle.
+- Configuration management: snapshot current config before applying a potentially broken change.
+- Speculative execution: try a transformation, revert if it fails validation.
+
+## When NOT to use
+
+- When the state is already stored externally (database row, file) — just reload from the source.
+- When snapshots are large and frequent — copying multi-megabyte state per keystroke is impractical; use a diff/patch approach instead.
+- When the Originator's state is already immutable — immutable value types are their own memento; just keep a copy.
+- Don't use Memento as a general-purpose serialization mechanism — use encoding/json or encoding/gob for that and accept the coupling.
+
+## Gotchas
+
+- **Shallow copy**: if `Originator.State` contains pointers or slices, `CreateMemento` must deep-copy them. A naive assignment copies the pointer, not the data, so modifying the live object also mutates the "snapshot".
+- **Package boundary**: Go unexported fields only protect within a package. If Originator and Caretaker are in separate packages, `Memento` fields must be exported (or use an opaque `[]byte` snapshot). Decide your encapsulation boundary up front.
+- **Memory growth**: an undo stack with no cap leaks memory proportional to the number of edits. Implement a maximum depth with LRU eviction.
+- **Nil Memento**: `SetMemento(nil)` panics. Guard: `if m == nil { return }`.
+- **Concurrent snapshots**: taking a snapshot while another goroutine mutates the Originator races. Lock before `CreateMemento` and release after. Alternatively, make `State` a value type and rely on the copy being race-free.
+
+## See also
+
+- `skills/behavioral/command.md` — Command's Undo operation typically restores a Memento.
+- `skills/behavioral/state.md` — State machines can snapshot their current state node as a Memento.
+- `examples/behavioral/memento/`
 --- END skills/behavioral/memento.md ---
 
 --- BEGIN skills/behavioral/observer.md ---
@@ -167,25 +734,206 @@ For usage, see [observer/main.go](observer/main.go) or [view in the Playground](
 
 # Registry
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Behavioral>/<Registry>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Maintain a goroutine-safe, typed lookup table that maps string names to shared values — singletons, plugin implementations, codecs, drivers, or factories. Consumers retrieve values by name without importing the concrete packages that provide them; producers register at init time without knowing who will consume.
+
+## Context
+
+The Registry pattern arises whenever a system is extended by plugins or named implementations that must be discovered at runtime. Examples: `database/sql` driver registration (`sql.Register`), `image` format decoders (`image.RegisterFormat`), HTTP handler routing, codec maps in serialization libraries.
+
+**Registry vs. Dependency Injection**: a Registry is a global lookup table; DI is an explicit constructor argument. They solve opposite problems:
+
+- **Registry** wins when the number of registered types is open (plugins written by third parties) and the lookup key is determined at runtime (e.g., a config file says `"driver": "postgres"`).
+- **DI wins in almost every other case.** Hard-coding a global registry into business logic makes it impossible to swap implementations in tests without mutating global state. If you know the dependency at construction time, inject it — don't register it.
+
+The Go standard library uses the Registry pattern sparingly and deliberately. Before adding one to your codebase, ask: "can I pass this as a constructor argument instead?"
+
+## Implementation in Go
+
+```go
+// Registry[T] is a goroutine-safe map from string names to values of type T.
+type Registry[T any] struct {
+    mu    sync.RWMutex
+    items map[string]T
+}
+
+// Register adds name → value. Returns an error on duplicate.
+func (r *Registry[T]) Register(name string, value T) error {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+    if r.items == nil {
+        r.items = make(map[string]T)
+    }
+    if _, exists := r.items[name]; exists {
+        return fmt.Errorf("registry: %q is already registered", name)
+    }
+    r.items[name] = value
+    return nil
+}
+
+// Get retrieves a value by name. Returns (zero, false) when not found.
+func (r *Registry[T]) Get(name string) (T, bool) {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
+    v, ok := r.items[name]
+    return v, ok
+}
+
+// MustRegister panics on duplicate — for package-level init registration.
+func (r *Registry[T]) MustRegister(name string, value T) {
+    if err := r.Register(name, value); err != nil {
+        panic(err)
+    }
+}
+```
+
+Package-level registration pattern (same as `database/sql`):
+
+```go
+// codecs/registry.go
+var Codecs Registry[Codec]
+
+// codecs/json/json.go
+func init() {
+    codecs.Codecs.MustRegister("json", JSONCodec{})
+}
+
+// Usage: import _ "codecs/json" to trigger init registration.
+```
+
+## When to use
+
+- Plugin architectures where third parties provide implementations at compile time (blank-import `init`).
+- Named driver / codec lookup determined by configuration: `"driver": "postgres"` → look up `pg.Driver`.
+- Protocol multiplexers: receive a message type tag, look up the handler by tag name.
+- Feature flags backed by registered handlers.
+- Any place the standard library uses `init`-based registration (`database/sql`, `image`, `net/http`).
+
+## When NOT to use
+
+- When the dependency is known at construction time — inject it directly; no registry needed.
+- When there is only one implementation — a registry of one is pointless ceremony.
+- In unit-tested business logic — global registry state leaks between tests; use interface injection instead.
+- When the registry would grow without bound at runtime — a registry is for a fixed set of known implementations, not a cache.
+- Avoid a mutable registry after the init phase — write-after-startup races and makes the system non-deterministic.
+
+## Gotchas
+
+- **Global mutable state**: a package-level `var Registry[T]` is mutated during `init`. Tests that run in parallel (or in the same binary with different expected contents) will race. Make registries test-injectable by passing them as constructor arguments, or reset them between tests with a `Clear()` method gated behind a build tag.
+- **Init order**: Go's init order within a package is deterministic but across packages depends on import order. If two `init` functions register the same name, the second one panics — but which `init` runs first is not guaranteed by the language spec. Never rely on registry insertion order.
+- **`MustRegister` panic in init**: a panic in `init` produces a cryptic stack trace. Log a human-readable error before panicking, or use `Register` and fail the startup explicitly in `main`.
+- **Generics require Go 1.18+**: the `Registry[T]` implementation uses generics. For Go < 1.18, use `map[string]interface{}` with type assertions, or a concrete type per registry (`map[string]Codec`).
+- **Nil map**: the zero value of `Registry[T]` is safe (`items` is lazily initialized in `Register`), but `Get` on a zero-value registry returns `(zero, false)` — correct, not a panic.
+- **Lock granularity**: `sync.RWMutex` allows concurrent reads. If `T` itself is a mutable object shared across goroutines, the registry only protects the map — not the values inside it. Document thread-safety expectations for `T`.
+
+## See also
+
+- `skills/behavioral/strategy.md` — Strategy selects an algorithm; a Registry often stores the available strategies.
+- `skills/creational/singleton.md` — Singleton is one instance; a Registry is many named instances with the same guarantees.
+- `examples/behavioral/registry/`
 --- END skills/behavioral/registry.md ---
 
 --- BEGIN skills/behavioral/state.md ---
 
 # State
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/State/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/state/`
+## Intent
+
+Allow an object to alter its behavior when its internal state changes. The object will appear to change its class. Instead of one big `switch` statement checked in every method, each state is an object that implements the full behavior for that state.
+
+## Context
+
+The State pattern is an object-oriented finite state machine. It shines when:
+
+- There are many states (more than ~4).
+- Each state has multiple methods with different behavior.
+- Transitions between states are numerous and belong to the states themselves rather than to a god-switch in the context.
+
+**State vs. switch-case**: for two or three states and one behavior method, a `switch` is clearer. The pattern earns its keep when you find yourself duplicating `switch state` across many methods, or when adding a new state requires edits in multiple places.
+
+**State vs. Strategy**: they look identical in code — both use an interface to swap behavior. The difference is intent and lifecycle. Strategy is swapped by the *caller* and stays fixed for the operation's duration. State is swapped by the *state itself* or by the context as part of a state machine — transitions are automatic.
+
+The example in `examples/behavioral/state/` models a mobile phone alert with two states (`MobileAlertVibration`, `MobileAlertSong`). The context (`MobileAlert`) delegates `Alert()` to its current state — clean and extensible.
+
+## Implementation in Go
+
+```go
+// MobileAlertStater defines the behavior interface for each state.
+type MobileAlertStater interface {
+    Alert() string
+}
+
+// MobileAlert is the context — delegates to its current state.
+type MobileAlert struct {
+    state MobileAlertStater
+}
+
+func NewMobileAlert() *MobileAlert {
+    return &MobileAlert{state: &MobileAlertVibration{}}
+}
+
+func (a *MobileAlert) Alert() string            { return a.state.Alert() }
+func (a *MobileAlert) SetState(s MobileAlertStater) { a.state = s }
+
+// MobileAlertVibration is the "vibrate" state.
+type MobileAlertVibration struct{}
+
+func (a *MobileAlertVibration) Alert() string { return "Vrrr... Brrr... Vrrr..." }
+
+// MobileAlertSong is the "ring" state.
+type MobileAlertSong struct{}
+
+func (a *MobileAlertSong) Alert() string {
+    return "Белые розы, Белые розы. Беззащитны шипы..."
+}
+```
+
+For a state machine where states control their own transitions:
+
+```go
+type State interface {
+    Handle(ctx *TrafficLight) State // returns the next state
+}
+
+type GreenLight struct{}
+
+func (g *GreenLight) Handle(ctx *TrafficLight) State {
+    fmt.Println("Green — go")
+    return &YellowLight{}
+}
+```
+
+The context just calls `current = current.Handle(ctx)` in a loop.
+
+## When to use
+
+- Network connection lifecycle: Disconnected → Connecting → Connected → Closing.
+- Order workflow: Pending → Paid → Shipped → Delivered → Refunded.
+- Game entity AI: Idle → Patrolling → Chasing → Attacking → Fleeing.
+- Document approval: Draft → Review → Approved → Published → Archived.
+- Any place you find `switch state { case A: ...; case B: ...; }` scattered across multiple methods.
+
+## When NOT to use
+
+- Two states and one method — use a bool flag and an `if`.
+- Transitions are data-driven (loaded from config or database) — use a table-driven state machine (`map[State]map[Event]State`) instead.
+- The context has no methods that change behavior by state — just track the state as a value with no need for the pattern.
+- Goroutine-per-state machines are sometimes cleaner for concurrent state + event handling than the synchronous pattern.
+
+## Gotchas
+
+- **Nil state**: if `MobileAlert.state` is nil, calling `Alert()` panics. Always initialize to a concrete start state; use `NewMobileAlert()` constructors rather than struct literals.
+- **Concurrent state transitions**: `SetState` is not goroutine-safe. If multiple goroutines can trigger transitions, protect `state` with a mutex or use atomic pointer swap (`atomic.Pointer[MobileAlertStater]` in Go 1.19+).
+- **Transition explosion**: if every state needs to know about every other state (to create it), you get tight coupling. Use a factory or the context itself to create next-states to break cycles.
+- **Lost events during transition**: if an event arrives while a transition is in progress, it may be processed by the old or new state depending on timing. Design your transition protocol carefully in concurrent systems.
+- **Interface allocation**: each state transition allocates a new concrete state struct. In hot paths (tight loops), consider a pool of state objects or a value-type state enum with a dispatch table.
+
+## See also
+
+- `skills/behavioral/strategy.md` — Strategy for externally selected algorithms; State for internally driven behavior changes.
+- `skills/behavioral/memento.md` — Snapshot the current state node for undo/restore.
+- `examples/behavioral/state/`
 --- END skills/behavioral/state.md ---
 
 --- BEGIN skills/behavioral/strategy.md ---
@@ -251,26 +999,205 @@ mult.Operate(3, 5) // 15
 
 # Template Method
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/TemplateMethod/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/template-method/`
+## Intent
+
+Define the skeleton of an algorithm in a base type, deferring some steps to concrete implementations. The skeleton stays fixed; the variable steps are overridable without changing the overall structure.
+
+## Context
+
+The GoF Template Method relies on inheritance: a base class implements the invariant steps and abstract methods that subclasses override. Go has no inheritance, so the pattern must be translated.
+
+**Two Go-native translations:**
+
+1. **Interface hook + embedding** (what the example uses): embed a concrete struct that holds the template, and compose it with an interface providing the variable steps. The embedded struct's method calls `q.Open()` and `q.Close()` through the interface — exactly what the example does with `Quotes` embedding `QuotesInterface`.
+
+2. **First-class functions** (often simpler): pass the variable steps as `func` values. This beats the struct form when there are one or two hooks and no shared state.
+
+For most real Go code, **composition + functions wins over Template Method**. The pattern adds value only when the algorithm skeleton is non-trivial (many shared steps) and the variable steps need to be grouped into coherent implementations (e.g., FrenchQuotes bundles `Open` and `Close` as a unit that travels together).
+
+The example in `examples/behavioral/template-method/` cleanly demonstrates the Go embedding approach: `Quotes` embeds `QuotesInterface`, and `Quotes.Quotes(str)` is the template method calling `q.Open()` and `q.Close()`. `FrenchQuotes` and `GermanQuotes` provide the hook implementations.
+
+## Implementation in Go
+
+```go
+// QuotesInterface defines the variable steps ("hooks").
+type QuotesInterface interface {
+    Open() string
+    Close() string
+}
+
+// Quotes is the template — its Quotes() method is the skeleton.
+type Quotes struct {
+    QuotesInterface // embedded: provides Open() and Close()
+}
+
+// Quotes is the Template Method — invariant skeleton.
+func (q *Quotes) Quotes(str string) string {
+    return q.Open() + str + q.Close()
+}
+
+func NewQuotes(qt QuotesInterface) *Quotes {
+    return &Quotes{qt}
+}
+
+// FrenchQuotes implements the «French» hook.
+type FrenchQuotes struct{}
+
+func (q *FrenchQuotes) Open() string  { return "«" }
+func (q *FrenchQuotes) Close() string { return "»" }
+```
+
+Usage:
+
+```go
+qt := NewQuotes(&FrenchQuotes{})
+qt.Quotes("Bonjour") // "«Bonjour»"
+```
+
+**Function-based alternative** (no struct needed for simple cases):
+
+```go
+func WrapString(s string, open, close func() string) string {
+    return open() + s + close()
+}
+
+result := WrapString("hello", func() string { return "«" }, func() string { return "»" })
+```
+
+## When to use
+
+- Parsing pipelines where the outer loop (read-parse-validate-emit) is fixed but the format-specific steps change.
+- Report generation: the report structure (header, body, footer) is invariant; the rendering (HTML, PDF, CSV) varies.
+- Test fixtures: a `TestSuite` template runs setup, test, teardown in order; concrete suites provide the test logic.
+- Database migrations: the migration runner orchestrates ordering and error handling; each migration implements `Up()` / `Down()`.
+- When the algorithm has several meaningful shared steps and the hook implementations belong together as a coherent type.
+
+## When NOT to use
+
+- When there is only one hook — pass a `func` instead; no pattern needed.
+- When the skeleton itself varies by context — use Strategy, which swaps the whole algorithm, not just steps.
+- When hooks are independent — inject each as a separate `func` rather than grouping them into an interface.
+- Avoid Template Method as a default choice just because the code has some shared steps — check if a plain helper function covers it first.
+
+## Gotchas
+
+- **Nil interface panic**: embedding `QuotesInterface` and constructing `&Quotes{}` without setting the interface field results in a nil embedded interface. Calling `q.Open()` panics. Always use the constructor `NewQuotes(qt)`.
+- **Infinite recursion via embedding**: if the template method and the hook method share the same name, the embedded call dispatches through the outer struct, not the hook, and recurses. Keep template method names distinct from hook method names.
+- **Over-engineering**: Template Method is the most misused GoF pattern. Before reaching for it, ask "does a plain function with function parameters solve this?" — often it does.
+- **Thread safety**: if the embedded hook implementations carry mutable state, concurrent calls to the template method race. Make hook implementations stateless or synchronize them.
+
+## See also
+
+- `skills/behavioral/strategy.md` — Strategy swaps the whole algorithm; Template Method keeps the skeleton and varies only the steps.
+- `skills/behavioral/chain-of-responsibility.md` — CoR is a runtime chain; Template Method is a compile-time skeleton.
+- `examples/behavioral/template-method/`
 --- END skills/behavioral/template-method.md ---
 
 --- BEGIN skills/behavioral/visitor.md ---
 
 # Visitor
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Behavioral/Visitor/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/behavioral/visitor/`
+## Intent
+
+Represent an operation to be performed on elements of an object structure. Visitor lets you define a new operation without changing the classes of the elements on which it operates. It achieves double dispatch: the operation varies by both the visitor type and the element type.
+
+## Context
+
+In Go, the honest answer is: **a type switch is usually the right tool**, not the GoF Visitor. Reach for the full Visitor structure only when:
+
+1. The **element hierarchy is closed and stable** (you own it) but **operations are added frequently** by external consumers.
+2. You need **true extensibility** — external packages can define new Visitor implementations without modifying the element types.
+3. The double-dispatch ceremony is worth the compile-time guarantee that every operation handles every element type (the `Visitor` interface's method set enforces exhaustiveness).
+
+When the element hierarchy is in your package and operations are few, a plain `switch v := node.(type)` is more readable, incurs no interface overhead, and avoids the `Accept/Visit` boilerplate.
+
+The example in `examples/behavioral/visitor/` shows the full GoF shape: `Visitor` interface with per-element methods, `Place` interface with `Accept(Visitor)`, and `City` as the object structure. This is the correct shape when the set of places (SushiBar, Pizzeria, BurgerBar) is fixed but the operations on them (People visiting, Health inspector visiting, etc.) grow over time.
+
+## Implementation in Go
+
+**Full GoF Visitor (element hierarchy stable, operations grow):**
+
+```go
+// Visitor declares a Visit method for each concrete element type.
+type Visitor interface {
+    VisitSushiBar(p *SushiBar) string
+    VisitPizzeria(p *Pizzeria) string
+    VisitBurgerBar(p *BurgerBar) string
+}
+
+// Place is the element interface.
+type Place interface {
+    Accept(v Visitor) string
+}
+
+// SushiBar is a concrete element.
+type SushiBar struct{}
+
+func (s *SushiBar) Accept(v Visitor) string { return v.VisitSushiBar(s) }
+func (s *SushiBar) BuySushi() string        { return "Buy sushi..." }
+
+// People is a concrete visitor.
+type People struct{}
+
+func (p *People) VisitSushiBar(s *SushiBar) string  { return s.BuySushi() }
+func (p *People) VisitPizzeria(p2 *Pizzeria) string  { return p2.BuyPizza() }
+func (p *People) VisitBurgerBar(b *BurgerBar) string { return b.BuyBurger() }
+```
+
+**Type-switch Visitor (idiomatic Go for internal hierarchies):**
+
+```go
+// Node is the element interface — no Accept() needed.
+type Node interface{ node() }
+
+type Num struct{ Val int }
+func (Num) node() {}
+
+type Add struct{ Left, Right Node }
+func (Add) node() {}
+
+// Eval is the "visitor" — a plain function with a type switch.
+func Eval(n Node) int {
+    switch v := n.(type) {
+    case Num:
+        return v.Val
+    case Add:
+        return Eval(v.Left) + Eval(v.Right)
+    default:
+        panic(fmt.Sprintf("unknown node %T", v))
+    }
+}
+```
+
+The type-switch form is not exhaustively checked at compile time (the `default` panic is the workaround), but it is dramatically simpler and is the idiomatic Go choice for internal hierarchies.
+
+## When to use
+
+- AST traversal in compilers and linters where the AST node types are fixed but analysis passes grow.
+- Document rendering: a fixed set of document nodes (Paragraph, Heading, Table) with multiple renderers (HTML, Markdown, PDF).
+- Serialization: visit each node type with a serialization visitor without adding `Marshal()` to every element.
+- When an external package must add new operations to your element types without you modifying them (true plugin extensibility).
+
+## When NOT to use
+
+- When the element hierarchy is internal and operations are few — use a type switch.
+- When the hierarchy changes frequently (new element types added often) — every new type forces all existing Visitors to add a method; use a map of handlers or the type-switch approach instead.
+- When elements are simple value types — just write functions.
+- When you control both elements and operations — you can add methods to the elements directly.
+
+## Gotchas
+
+- **Exhaustiveness gap in type switches**: Go does not warn if you miss a `case` in a type switch. The compiler catches missing methods in a GoF Visitor interface. If exhaustiveness matters, the GoF form provides it; otherwise add a `default: panic(...)` in the type switch.
+- **Type assertion panic**: `Accept` passes `s *SushiBar` to `VisitSushiBar`; the concrete type must match exactly. Accidental nil concrete pointers inside a non-nil `Place` interface will panic.
+- **Adding element types**: every new concrete element type requires adding a method to the `Visitor` interface, which breaks all existing visitor implementations. This is the fundamental tension of the pattern.
+- **Cyclic visits**: a `City.Accept` iterates over `places` calling `Accept` on each. If a `Place` implementation's `Accept` itself calls `city.Accept`, you recurse infinitely. Visitor trees must be acyclic.
+- **State in visitors**: a stateful visitor (e.g., accumulating a result) is not goroutine-safe if called concurrently on different elements. Either make the visitor immutable or use per-goroutine visitor instances.
+
+## See also
+
+- `skills/behavioral/iterator.md` — Iterator traverses a structure; Visitor applies an operation to each element during traversal.
+- `skills/behavioral/strategy.md` — Strategy swaps the algorithm for a single operation; Visitor dispatches multiple operations across a type hierarchy.
+- `examples/behavioral/visitor/`
 --- END skills/behavioral/visitor.md ---
 
 --- BEGIN skills/concurrency/bounded-parallelism.md ---
@@ -288,24 +1215,197 @@ An example showing implementation and usage can be found in [bounded_parallelism
 
 # Broadcast
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Concurrency>/<Broadcast>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Broadcast delivers one event to every current subscriber atomically — all receivers unblock at the same logical instant. Unlike a regular channel send (which wakes exactly one goroutine), a broadcast wakes all of them. The pattern captures the distinction between "pick one worker to handle this" (fan-out / work distribution) and "notify everyone about this" (broadcast / publish).
+
+## Context
+
+Broadcast arises whenever shared state changes and every interested party must react: configuration reloads, shutdown signals, cache invalidation, leader-election notifications, "ready" signals in test harnesses. Two idiomatic Go mechanisms deliver it:
+
+1. **Closing a channel** (`close(ch)`) — the simplest broadcast. A closed channel is readable by any number of goroutines with immediate, non-blocking receipt of the zero value. Works for one-shot signals (e.g., `context.Done()`).
+2. **`sync.Cond.Broadcast()`** — for repeated or data-carrying events where the set of waiters changes dynamically. Waiters register under a mutex, wait on the condition, and the broadcaster wakes all of them in one call.
+
+A third approach — maintaining a slice of per-subscriber channels — gives more control (typed payloads, back-pressure) but adds bookkeeping.
+
+## Implementation in Go
+
+**One-shot broadcast via channel close** (recommended for signals):
+
+```go
+type Signal struct{ once sync.Once; ch chan struct{} }
+
+func NewSignal() *Signal { return &Signal{ch: make(chan struct{})} }
+
+// Broadcast fires the signal; safe to call multiple times.
+func (s *Signal) Broadcast() { s.once.Do(func() { close(s.ch) }) }
+
+// Wait blocks until Broadcast has been called.
+func (s *Signal) Wait() <-chan struct{} { return s.ch }
+```
+
+Callers do `<-sig.Wait()` or `select { case <-sig.Wait(): ... case <-ctx.Done(): ... }`.
+
+**Repeatable broadcast via fan-out channels** (for typed payloads):
+
+```go
+type Broadcaster[T any] struct {
+    mu   sync.Mutex
+    subs []chan T
+}
+
+func (b *Broadcaster[T]) Subscribe(buf int) <-chan T {
+    ch := make(chan T, buf)
+    b.mu.Lock()
+    b.subs = append(b.subs, ch)
+    b.mu.Unlock()
+    return ch
+}
+
+func (b *Broadcaster[T]) Send(v T) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    for _, ch := range b.subs {
+        select {
+        case ch <- v:
+        default: // drop if subscriber is full; adjust policy as needed
+        }
+    }
+}
+```
+
+## When to use
+
+- One-time signal to all goroutines: shutdown, "ready", config loaded — use `close(ch)` wrapped in `sync.Once`.
+- Repeatable typed notifications to a known-at-startup set of listeners — fan-out channels.
+- Dynamic subscription list with complex wait predicates — `sync.Cond.Broadcast`.
+- `context.WithCancel` already provides broadcast semantics for cancellation; reuse it before rolling your own.
+
+## When NOT to use
+
+- When only one goroutine should handle the event — use a plain channel send.
+- When you need guaranteed delivery with back-pressure — add buffered subscriber channels and handle the full case explicitly instead of dropping.
+- High-frequency data streams to many subscribers — consider a ring-buffer or event-bus library to avoid per-subscriber heap allocation per message.
+
+## Gotchas
+
+- **Closing a closed channel panics.** Always guard with `sync.Once` or an explicit closed-flag under a mutex.
+- **`sync.Cond` spurious wakeups**: always re-check the predicate in a `for` loop after `Wait()` returns — it may have been woken by `Signal` (not `Broadcast`) or a spurious wake.
+- **Subscriber leak**: if a goroutine subscribes but exits without draining its channel, the `Send` loop may block or drop messages indefinitely. Provide an `Unsubscribe` or use a `select/default` drop policy.
+- **Lock ordering**: do not call `Broadcast()` while holding a lock that subscribers also acquire — classic deadlock.
+
+## See also
+
+- skills/concurrency/producer-consumer.md
+- skills/messaging/push-pull.md
+- skills/synchronization/condition-variable.md
+- examples/concurrency/broadcast/
 --- END skills/concurrency/broadcast.md ---
 
 --- BEGIN skills/concurrency/coroutines.md ---
 
 # Coroutines
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Concurrency>/<Coroutines>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A coroutine is a function that can suspend its execution at a yield point and transfer control to another coroutine, resuming later from exactly where it left off. Unlike threads, coroutines are cooperative: they explicitly yield rather than being preempted. The pattern enables clean expression of state machines, generators, and pipelines where two logical agents take turns producing and consuming.
+
+## Context
+
+Go does not have first-class coroutine syntax. However, goroutines + channels compose into the same cooperative semantics: a "yield" is a channel send (or receive) that blocks the sender until the partner is ready. This is not a limitation — it is idiomatic Go. The send/receive handshake is explicit, deterministic, and race-free by construction.
+
+When the use case is pure generation (one direction of yield), a goroutine closing over a channel is the standard "generator" pattern. When two coroutines truly take turns (ping-pong), two goroutines communicate over two channels — one for each direction of control transfer.
+
+`golang.org/x/exp/coroutine` exists but brings an external dependency; avoid it for production code when stdlib suffices.
+
+## Implementation in Go
+
+```go
+// Coroutine encapsulates a goroutine that yields values of type T
+// and resumes when the caller calls Next.
+type Coroutine[T any] struct {
+    yield  chan T
+    resume chan struct{}
+    done   chan struct{}
+}
+
+// Start launches the coroutine body. body receives a yield func that returns
+// true to continue or false when the coroutine has been stopped.
+// The body should return when yield returns false.
+func Start[T any](ctx context.Context, body func(yield func(T) bool)) *Coroutine[T] {
+    c := &Coroutine[T]{
+        yield:  make(chan T),
+        resume: make(chan struct{}),
+        done:   make(chan struct{}),
+    }
+    go func() {
+        defer close(c.yield)
+        body(func(v T) bool {
+            select {
+            case c.yield <- v: // suspend: deliver value
+            case <-ctx.Done():
+                return false
+            case <-c.done:
+                return false
+            }
+            select {
+            case <-c.resume:
+                return true
+            case <-ctx.Done():
+                return false
+            case <-c.done:
+                return false
+            }
+        })
+    }()
+    return c
+}
+
+// Next advances the coroutine and returns (value, true) or (zero, false)
+// when the body has returned or the coroutine has been stopped.
+func (c *Coroutine[T]) Next() (T, bool) {
+    v, ok := <-c.yield
+    if ok {
+        select {
+        case c.resume <- struct{}{}:
+        case <-c.done:
+        }
+    }
+    return v, ok
+}
+
+// Stop signals the coroutine to cease yielding. Idempotent.
+func (c *Coroutine[T]) Stop() { /* closes c.done via sync.Once */ }
+```
+
+The send/receive pattern ensures that exactly one goroutine is running at any time — true cooperative scheduling.
+
+## When to use
+
+- **Generators**: produce an infinite or lazy sequence (Fibonacci, prime sieve, paginated API results) without materialising the whole slice.
+- **State machines** with complex transitions that are cleaner expressed as sequential code than as explicit state enum switches.
+- **Cooperative ping-pong**: two logical agents alternating turns (parser ↔ lexer, test driver ↔ system-under-test).
+- Protocol implementations where client and server speak in alternating turns.
+
+## When NOT to use
+
+- When the data flows in one direction at high throughput — a buffered channel pipeline is more efficient.
+- When you need parallelism rather than interleaving — use goroutines without the cooperative handshake.
+- When the "coroutine" is just an iterator over a slice — use a plain `for` loop or closure returning `iter.Seq` (Go 1.23+).
+- When the body can panic and must be recovered safely — the paired channels leak if the goroutine panics without draining; add a recover + close.
+
+## Gotchas
+
+- **Goroutine leak on early exit**: if the caller stops calling `Next` before the body returns, the goroutine blocks forever on `c.yield <- v`. Add a `done` channel or context to the yield function so the goroutine can detect abandonment.
+- **Not using generics (pre-1.18)**: coroutines over `any` require type assertions at every `Next` call — messy. Prefer the generic form shown above.
+- **Deadlock with buffered channels**: using a buffered `yield` channel breaks the strict cooperative semantics — the body can run ahead of the caller.
+- **Shared state between coroutine and caller**: even though only one runs at a time, the Go race detector does not know that. Use channel values to pass data; do not share pointers without explicit synchronisation.
+
+## See also
+
+- skills/concurrency/producer-consumer.md
+- skills/concurrency/reactor.md
+- examples/concurrency/coroutines/
 --- END skills/concurrency/coroutines.md ---
 
 --- BEGIN skills/concurrency/generator.md ---
@@ -354,12 +1454,92 @@ fmt.Println(100, "bottles of beer on the wall")
 
 # N-Barrier
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Concurrency>/<NBarrier>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+An N-Barrier is a synchronisation point at which exactly N goroutines must arrive before any of them is allowed to continue. It models the concept of a "rendezvous": every participant waits until the last one checks in, then all are released together. This is the concurrency analogue of a starting pistol — nobody runs until everyone is on the blocks.
+
+## Context
+
+The pattern appears whenever a parallel workload is split into discrete phases and correctness requires that phase K is fully complete before phase K+1 begins. Classic examples: parallel numerical solvers (all goroutines finish one Jacobi sweep before the next), distributed simulation (all agents step forward one tick in lock-step), integration-test harnesses (all workers reach a known state before assertions fire). The alternative — ad-hoc `time.Sleep` or hoping that goroutines finish in order — is both fragile and racy.
+
+Go's standard library does not ship a reusable cyclic barrier, but one can be built trivially from channels or `sync.WaitGroup`. When you only need a single rendezvous, `WaitGroup` is idiomatic. When you need repeated cycles (re-arming), a channel-based barrier is cleaner.
+
+## Implementation in Go
+
+**Single-shot** — `sync.WaitGroup` suffices:
+
+```go
+var wg sync.WaitGroup
+wg.Add(n)
+for range n {
+    go func() {
+        defer wg.Done()
+        doPhaseWork()
+    }()
+}
+wg.Wait() // barrier point — all n goroutines finished
+```
+
+**Cyclic (re-arming)** — replace the WaitGroup with a generation-based barrier. Each generation tracks a countdown; when it hits zero a new channel is closed to broadcast "go", and a fresh generation begins.
+
+```go
+type Barrier struct {
+    n       int
+    mu      sync.Mutex
+    waiting int
+    done    chan struct{}
+}
+
+func NewBarrier(n int) *Barrier {
+    return &Barrier{n: n, done: make(chan struct{})}
+}
+
+// Wait blocks until n goroutines have called Wait, then all return.
+func (b *Barrier) Wait() {
+    b.mu.Lock()
+    b.waiting++
+    if b.waiting == b.n {
+        // Last arrival: open the gate and arm a new one.
+        close(b.done)
+        b.done = make(chan struct{})
+        b.waiting = 0
+        b.mu.Unlock()
+        return
+    }
+    gate := b.done
+    b.mu.Unlock()
+    <-gate
+}
+```
+
+The `close(ch)` broadcast is idiomatic Go: closing a channel unblocks all receivers simultaneously, which is exactly what a barrier needs.
+
+## When to use
+
+- Multi-phase parallel algorithms (numerical solvers, game simulations) where each phase depends on all results from the previous.
+- Integration tests that spin up N workers and need a "steady state reached" guarantee before asserting.
+- Pipeline stages where the next stage must not start until all producers of the current stage have finished.
+- Parallel benchmarks where you want all goroutines to start at the same instant (use barrier before work begins).
+
+## When NOT to use
+
+- When you only need to wait for goroutines to finish without re-use — `sync.WaitGroup` already is a single-shot barrier; no custom type needed.
+- When N is not known at construction time or varies dynamically — prefer a fan-in channel pattern or `errgroup`.
+- When participants can proceed as soon as their own prerequisite is satisfied rather than everyone's — that is a pipeline, not a barrier.
+- High-frequency tight loops: the mutex inside the cyclic barrier adds contention; consider lock-free designs or restructuring the algorithm.
+
+## Gotchas
+
+- **Goroutine leak on panic**: if any participant panics before calling `Wait`, the remaining goroutines block forever. Always `defer` calls that release the barrier or use `errgroup` for panic-safe coordination.
+- **Wrong N**: passing a count that never matches the number of actual goroutines deadlocks silently. Prefer computing N from `len(workers)` rather than a magic constant.
+- **Re-arming race**: in the cyclic version, reading `b.done` and then blocking on it must be atomic with respect to the counter update — the mutex covers both; do not cache `b.done` outside the lock then release the lock before blocking.
+- **Context cancellation**: the bare `<-gate` in `Wait` is not cancellable. In production, select on both `gate` and `ctx.Done()` and propagate `ctx.Err()`.
+
+## See also
+
+- skills/concurrency/producer-consumer.md
+- skills/synchronization/condition-variable.md
+- examples/concurrency/n-barrier/
 --- END skills/concurrency/n-barrier.md ---
 
 --- BEGIN skills/concurrency/parallelism.md ---
@@ -377,37 +1557,286 @@ An example showing implementation and usage can be found in [parallelism.go](par
 
 # Producer Consumer
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Concurrency>/<ProducerConsumer>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Producer Consumer decouples work generation from work processing. Producers push items into a bounded buffer; consumers pull and process them independently. The buffer absorbs bursts, and its bounded capacity creates natural backpressure: when consumers are slow, producers block rather than building up unbounded memory. Graceful shutdown propagates from producers (close the channel) to consumers (range exits when channel is empty and closed).
+
+## Context
+
+Wherever a program reads from a slow source (network, disk, scraper) and processes items with CPU-intensive logic, or vice versa, the producer-consumer split allows both sides to run at their natural pace without one starving the other. Common instances: HTTP request ingestion → background job processing; file crawler → indexer; event stream → analytics pipeline.
+
+In Go, a **buffered channel** is the queue. It provides thread safety, backpressure, and close-signalling for free. The idiom is: producers send to `jobs`; consumers `range jobs`; producers close `jobs` when done. A `context.Context` provides cancellation for both sides.
+
+## Implementation in Go
+
+```go
+func Run(ctx context.Context, nProducers, nConsumers, bufSize int) {
+    jobs := make(chan int, bufSize) // bounded buffer = backpressure
+
+    // Producers: close jobs when all are done.
+    var prodWg sync.WaitGroup
+    prodWg.Add(nProducers)
+    for i := range nProducers {
+        go func(id int) {
+            defer prodWg.Done()
+            for j := range 100 {
+                select {
+                case jobs <- id*100 + j:
+                case <-ctx.Done():
+                    return
+                }
+            }
+        }(i)
+    }
+    go func() { prodWg.Wait(); close(jobs) }()
+
+    // Consumers: range exits when jobs is closed and drained.
+    var consWg sync.WaitGroup
+    consWg.Add(nConsumers)
+    for range nConsumers {
+        go func() {
+            defer consWg.Done()
+            for job := range jobs {
+                process(job)
+            }
+        }()
+    }
+    consWg.Wait()
+}
+```
+
+Key points: `close(jobs)` is called exactly once, from a dedicated goroutine that waits for all producers. Consumers use `range` which unblocks on close. The `select` on `ctx.Done()` lets producers respect cancellation without closing the channel themselves.
+
+## When to use
+
+- Decoupling a slow source from a CPU-bound processor (or vice versa).
+- When you need explicit backpressure: buffer full → producers stall → upstream pressure.
+- When the number of producers and consumers should scale independently.
+- Any "work queue" scenario: job processing, event pipelines, ETL.
+
+## When NOT to use
+
+- When items must be processed in strict FIFO order by a single worker — a simple goroutine + channel is enough.
+- When you need priority queuing — a channel is FIFO; use `container/heap` behind a mutex.
+- When production and consumption are tightly coupled and always run at the same rate — the indirection adds latency without benefit.
+- When items carry errors that must propagate back to producers — consider `errgroup` or a result channel alongside the jobs channel.
+
+## Gotchas
+
+- **Closing from multiple producers**: only one goroutine may close a channel. Use a `sync.WaitGroup` + sentinel goroutine. Never close from inside a producer.
+- **Panic on send to closed channel**: if a consumer closes the channel (it shouldn't) or a producer escapes the WaitGroup, the send panics. Keep close ownership clear.
+- **Context not threaded through**: if producers do not select on `ctx.Done()`, a cancelled context does not stop them — they keep filling the buffer.
+- **Buffer size tuning**: too small → producers starve; too large → memory pressure and slow cancellation. Profile with `go tool pprof` and tune to your burst characteristics.
+- **Consumer errors lost**: `range jobs` discards the job on error. Always collect errors via an `errs chan error` or `errgroup`.
+
+## See also
+
+- skills/concurrency/broadcast.md
+- skills/concurrency/n-barrier.md
+- skills/messaging/push-pull.md
+- examples/concurrency/producer-consumer/
 --- END skills/concurrency/producer-consumer.md ---
 
 --- BEGIN skills/concurrency/reactor.md ---
 
 # Reactor
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Concurrency>/<Reactor>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+The Reactor pattern demultiplexes events arriving on multiple sources and dispatches them synchronously to registered handler functions — all within a single goroutine (the event loop). This eliminates lock contention: because handlers run sequentially in the loop goroutine, they can read and write shared state without mutexes. It mirrors the epoll/kqueue/IOCP model at the OS level and the event-loop model of Node.js/Nginx at the application level.
+
+## Context
+
+Go's `select` statement is the natural implementation of an in-memory reactor: it monitors multiple channels and dispatches to the first ready one. A single goroutine running `select` in a loop is the Go idiom for a single-threaded event loop. This is already what the Go runtime itself does internally for timer and network I/O multiplexing.
+
+Use the pattern when a subsystem must react to several independent event streams (timers, control commands, data events, shutdown) without the overhead of per-stream goroutines or the complexity of shared-state synchronisation. The trade-off is that **handlers must be short** — a long-running handler stalls the entire reactor.
+
+## Implementation in Go
+
+```go
+type Event struct{ Kind string; Payload any }
+type Handler func(Event)
+
+type Reactor struct {
+    events   chan Event
+    handlers map[string]Handler
+    done     chan struct{}
+}
+
+func New(buf int) *Reactor {
+    return &Reactor{
+        events:   make(chan Event, buf),
+        handlers: make(map[string]Handler),
+        done:     make(chan struct{}),
+    }
+}
+
+func (r *Reactor) Register(kind string, h Handler) { r.handlers[kind] = h }
+func (r *Reactor) Send(e Event)                    { r.events <- e }
+
+func (r *Reactor) Run(ctx context.Context) {
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        case e := <-r.events:
+            if h, ok := r.handlers[e.Kind]; ok {
+                h(e)
+            }
+        }
+    }
+}
+```
+
+For multiple distinct event channels (timers, data, control), add them as separate cases in the `select`. Each case maps to a dedicated handler.
+
+## When to use
+
+- In-process event loops where several independent event streams converge (timers, commands, data).
+- Protocol state machines: events arrive from different sources (timeout, data received, peer closed); a single loop simplifies state transition logic.
+- Actor-style isolated components: each actor is a goroutine with a `select` loop; the "reactor" pattern is the loop body.
+- Subsystems that must process events in arrival order without reordering across streams.
+
+## When NOT to use
+
+- When handlers are CPU-intensive or block on I/O — offload to worker goroutines instead of blocking the loop.
+- When events are rare and goroutine overhead is acceptable — a dedicated goroutine per event source is simpler.
+- When you need true parallelism across event types — a reactor is serial by design.
+- Network I/O at scale — Go's runtime already multiplexes with `net/http`; building a reactor on raw `net.Conn` re-implements what the runtime gives you.
+
+## Gotchas
+
+- **Blocking handler**: any handler that blocks (waits on a mutex, does network I/O) stalls all other events. Dispatch to a goroutine and return immediately if work is non-trivial.
+- **Unbuffered event channel**: senders block when the reactor loop is busy. Use a buffered channel and monitor its length; a growing queue signals handler overload.
+- **Handler registration after Run**: if `Register` is called after `Run` starts, there is a data race on the `handlers` map. Fix: register before starting, or use a `sync.Map`, or send a special registration event.
+- **Shutdown ordering**: after `ctx` cancels, events still in the buffer are silently dropped. Drain the channel if at-least-once delivery is required.
+
+## See also
+
+- skills/concurrency/producer-consumer.md
+- skills/concurrency/broadcast.md
+- examples/concurrency/reactor/
 --- END skills/concurrency/reactor.md ---
 
 --- BEGIN skills/creational/abstract-factory.md ---
 
 # Abstract Factory
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Creational/AbstractFactory/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/creational/abstract-factory/`
+## Intent
+
+Provide an interface for creating families of related or dependent objects without specifying their concrete types. The factory itself is the abstraction; swapping the factory changes every product it produces in a coordinated, consistent way.
+
+## Context
+
+Abstract Factory is the natural step up from Factory Method when you have multiple related types that must be kept in sync. A UI toolkit that must render either native macOS widgets or web widgets is the textbook case: you swap one `WidgetFactory` and every button, dialog, and scrollbar it creates belongs to the same family.
+
+In Go, the full GoF pattern is rarely the right first tool. Before reaching for an interface with multiple `Create*` methods, ask:
+
+1. **Does only one type vary?** Use a simple factory function or [Factory Method](skills/creational/factory-method.md) instead.
+2. **Do the products share state only through construction?** A plain struct with configuration fields and multiple `New*()` methods on it is easier to read and test than a factory interface.
+3. **Must the factory itself be swappable at runtime by external code (plugin, DI container)?** Only then does the full interface form earn its keep.
+
+## Implementation in Go
+
+### Simple form — struct factory with configuration (recommended)
+
+When the factory is not plug-in swappable, a concrete struct with `New*()` methods is cleaner and needs no interface:
+
+```go
+// DrinkFactory creates a matched set of drink products for a given brand.
+type DrinkFactory struct {
+    brand string
+}
+
+func NewDrinkFactory(brand string) *DrinkFactory {
+    return &DrinkFactory{brand: brand}
+}
+
+func (f *DrinkFactory) NewWater(volumeL float64) *Water {
+    return &Water{brand: f.brand, volumeL: volumeL}
+}
+
+func (f *DrinkFactory) NewBottle(capacityL float64) *Bottle {
+    return &Bottle{brand: f.brand, capacityL: capacityL}
+}
+```
+
+The consumer receives a `*DrinkFactory` and calls `f.NewWater(...)` and `f.NewBottle(...)`. Changing the brand is a one-line constructor swap.
+
+### Full interface form — plug-in swappable factory
+
+Use this when the factory must be injected and replaced (tests, plugins, multi-tenant systems):
+
+```go
+// Factory creates a matched family of drink products.
+type Factory interface {
+    CreateWater(volumeL float64) Water
+    CreateBottle(capacityL float64) Bottle
+}
+
+// Water and Bottle are the product abstractions.
+type Water interface {
+    Volume() float64
+}
+
+type Bottle interface {
+    Fill(Water)
+    WaterVolume() float64
+    Capacity() float64
+}
+
+// CocaColaFactory is one concrete family.
+type CocaColaFactory struct{}
+
+func (CocaColaFactory) CreateWater(v float64) Water   { return &colaWater{v} }
+func (CocaColaFactory) CreateBottle(c float64) Bottle { return &colaBottle{capacity: c} }
+
+// PepsiFactory is the other concrete family.
+type PepsiFactory struct{}
+
+func (PepsiFactory) CreateWater(v float64) Water   { return &pepsiWater{v} }
+func (PepsiFactory) CreateBottle(c float64) Bottle { return &pepsiBottle{capacity: c} }
+```
+
+Consumer code works with `Factory` only:
+
+```go
+func FillBottle(f Factory, vol float64) Bottle {
+    water  := f.CreateWater(vol)
+    bottle := f.CreateBottle(vol)
+    bottle.Fill(water)
+    return bottle
+}
+```
+
+Swapping `CocaColaFactory{}` for `PepsiFactory{}` changes the entire product family without touching `FillBottle`.
+
+## When to use
+
+- You need to produce multiple related types (a "family") and the whole family must change together — e.g., cloud provider clients, themed UI components, test doubles for a subsystem.
+- The factory must be injected and swapped at runtime without the consumer knowing the concrete family.
+- You want to enforce that products from different families are not accidentally mixed (a `CocaColaBottle` filled with `PepsiWater` is a logical error the type system can prevent when both are created through the same factory).
+
+## When NOT to use
+
+- Only one product type varies — use a factory function or [Factory Method](skills/creational/factory-method.md).
+- The factory is not swappable — a concrete struct with `New*()` methods is simpler and equally testable.
+- The family has only a single product — Abstract Factory is overkill; reach for [Functional Options](skills/idiom/functional-options.md) or a plain constructor.
+- Products in the family do not interact or share invariants — there is no coupling to protect; independent factory functions are cleaner.
+
+## Gotchas
+
+- **Interface explosion**: every new product type forces a new method on the factory interface, recompiling every implementation. If the family grows frequently, prefer the struct form so adding a method does not break existing factories.
+- **Product interface coupling**: when product interfaces are too wide, they leak implementation details. Keep product interfaces narrow — only what the consumer actually needs.
+- **Value vs pointer receivers on factory structs**: if the factory holds no mutable state (most do not), define factory methods on value receivers (`func (CocaColaFactory) CreateWater(...)`) so the factory can be stored by value, avoiding an unnecessary heap allocation.
+- **Nil product interfaces**: an uninitialized `Factory` variable is a nil interface; calling `Create*` on it panics. Fail fast at construction time with a `if f == nil { panic("factory required") }` guard rather than discovering the nil deep in a call stack.
+
+## See also
+
+- skills/creational/factory-method.md
+- skills/creational/builder.md
+- skills/idiom/functional-options.md
+- examples/creational/abstract-factory/
 --- END skills/creational/abstract-factory.md ---
 
 --- BEGIN skills/creational/builder.md ---
@@ -593,13 +2022,146 @@ default:
 
 # Prototype
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Creational/Prototype/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/creational/prototype/`
+## Intent
+
+Create new objects by copying an existing, fully initialized instance (the prototype). The clone starts with a known-good state and can then be modified independently. Construction cost is paid once; cloning is typically cheaper.
+
+## Context
+
+In most Go code the zero value is useful, constructors are cheap, and `sync.Pool` handles object reuse better than Prototype. The pattern earns its place when:
+
+- **Construction is genuinely expensive** — e.g., a pre-warmed parser, a loaded ML model, a network connection graph — and a baseline configuration is reused with minor tweaks across many calls.
+- **The object graph is complex** — the prototype captures a deep hierarchy that would require many constructor calls to recreate each time.
+- **Configuration diverges from a common root** — you have a "template" object that many variants start from before customization.
+
+In modern Go, compare against simpler alternatives first:
+
+| Alternative | When it wins |
+|---|---|
+| Plain constructor | State is cheap to build; no shared baseline |
+| `sync.Pool` | Pooling for allocation reduction, not configuration variation |
+| Functional Options | Variation through options, not cloning |
+| `encoding/json` or `encoding/gob` round-trip | Deep clone of complex graphs without hand-written `Clone()` |
+
+## Implementation in Go
+
+### Explicit `Clone()` with deep-copy semantics (recommended)
+
+Make deep-copy behavior explicit. Never silently share slices or maps between the original and the clone.
+
+```go
+// DocumentTemplate is an expensive-to-construct baseline configuration.
+type DocumentTemplate struct {
+    Title    string
+    Tags     []string            // must be deep-copied
+    Metadata map[string]string   // must be deep-copied
+}
+
+// Clone returns an independent deep copy of the template.
+// Modifying the clone's Tags or Metadata does not affect the original.
+func (d *DocumentTemplate) Clone() *DocumentTemplate {
+    tags := make([]string, len(d.Tags))
+    copy(tags, d.Tags)
+
+    meta := make(map[string]string, len(d.Metadata))
+    for k, v := range d.Metadata {
+        meta[k] = v
+    }
+
+    return &DocumentTemplate{
+        Title:    d.Title,
+        Tags:     tags,
+        Metadata: meta,
+    }
+}
+```
+
+Usage:
+
+```go
+base := &DocumentTemplate{
+    Title:    "Q4 Report",
+    Tags:     []string{"finance", "internal"},
+    Metadata: map[string]string{"author": "template"},
+}
+
+draft := base.Clone()
+draft.Title = "Q4 Report — DRAFT"
+draft.Metadata["author"] = "alice"
+// base is unchanged
+```
+
+### Interface-based Prototype (matches existing example)
+
+When multiple types share the cloning contract, define a `Cloner` interface:
+
+```go
+// Cloner is satisfied by any type that can produce an independent copy of itself.
+type Cloner interface {
+    Clone() Cloner
+    Name() string
+}
+
+type Product struct {
+    name string
+}
+
+func NewProduct(name string) Cloner { return &Product{name: name} }
+func (p *Product) Name() string     { return p.name }
+func (p *Product) Clone() Cloner    { return &Product{name: p.name} }
+```
+
+### Deep copy via `encoding/gob` (complex graphs, zero boilerplate)
+
+For large, deeply nested structs where hand-rolling `Clone()` is error-prone:
+
+```go
+import (
+    "bytes"
+    "encoding/gob"
+)
+
+func DeepClone[T any](src T) (T, error) {
+    var buf bytes.Buffer
+    if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+        var zero T
+        return zero, err
+    }
+    var dst T
+    return dst, gob.NewDecoder(&buf).Decode(&dst)
+}
+```
+
+This works for exported fields only and requires all field types to be gob-encodable. The round-trip is slower than a hand-written `Clone()` but eliminates an entire class of shallow-copy bugs.
+
+## When to use
+
+- Constructing an object requires expensive work (I/O, parsing, computation) and a validated baseline exists.
+- Many similar objects are created that share a common starting state and then diverge.
+- The exact type of the object to clone is unknown at compile time (polymorphic cloning via interface).
+- An object's configuration is determined at runtime and cannot be described statically to a constructor.
+
+## When NOT to use
+
+- Construction is cheap — a plain `New*()` call is clearer and costs nothing.
+- The "copy" is just a value type assignment — structs in Go are value types; `b := a` already copies all value fields, making Prototype unnecessary for flat structs.
+- You only need object reuse, not configuration variation — use `sync.Pool`.
+- Shared state between original and clone is intentional — in that case don't clone, share a pointer.
+
+## Gotchas
+
+- **Shallow vs deep copy**: Go struct assignment is a shallow copy. A naively written `Clone()` that returns `&ConcreteProduct{p.name}` is safe for the string field (`string` is immutable), but any slice or map field will share the underlying array/hash table between original and clone. Always `copy()` slices and range-copy maps.
+- **Pointer fields**: a field of type `*Inner` copied by assignment still points to the same `Inner`. Clone the pointed-to value explicitly or use a `Clone()` method on `Inner`.
+- **Interface fields**: an interface value contains a pointer to the concrete data. Cloning a struct that holds an interface field requires a type switch or a `Cloner` interface on the concrete type.
+- **`sync.Mutex` and similar**: never copy a mutex by value. If the prototype contains a `sync.Mutex`, the clone must initialize a fresh one, not copy the locked/unlocked state.
+- **`gob`/`json` round-trip limitations**: unexported fields are silently skipped; channel, function, and unsafe.Pointer fields are not encodable. Verify the round-trip in tests before relying on it.
+
+## See also
+
+- skills/creational/factory-method.md
+- skills/creational/builder.md
+- skills/idiom/functional-options.md
+- examples/creational/prototype/
 --- END skills/creational/prototype.md ---
 
 --- BEGIN skills/creational/singleton.md ---
@@ -750,13 +2312,123 @@ if err != nil {
 
 # Specification
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Unsorted/Specification/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/idiom/specification/`
+## Intent
+
+Encapsulate a single business rule as a named, composable predicate object. Rules written as `Specification` values can be combined with `And`, `Or`, and `Not` combinators without scattering conditional logic across the call sites that need them.
+
+## Context
+
+The pattern originates from Domain-Driven Design (Evans, Fowler). It shines when:
+
+- the same predicate appears in multiple places (query, validation, UI display)
+- rules must be composed at runtime based on user configuration
+- individual rules must be unit-tested in isolation with a meaningful name
+
+In straightforward Go code, a plain `func(T) bool` or a method on the domain type is usually sufficient. Reserve the heavier named-type Specification only when you genuinely need serialization, reflection, rule-engine integration, or a large catalog of named, independently testable rules.
+
+## Implementation in Go
+
+### Idiomatic form: functional combinators
+
+Prefer this for most Go code. No interface overhead, no struct embedding, just closures.
+
+```go
+// Predicate is a typed boolean function over any domain entity.
+type Predicate[T any] func(T) bool
+
+// And returns a predicate satisfied only when all given predicates are satisfied.
+func And[T any](specs ...Predicate[T]) Predicate[T] {
+    return func(v T) bool {
+        for _, s := range specs {
+            if !s(v) {
+                return false
+            }
+        }
+        return true
+    }
+}
+
+// Or returns a predicate satisfied when at least one given predicate is satisfied.
+func Or[T any](specs ...Predicate[T]) Predicate[T] {
+    return func(v T) bool {
+        for _, s := range specs {
+            if s(v) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
+// Not negates a predicate.
+func Not[T any](spec Predicate[T]) Predicate[T] {
+    return func(v T) bool { return !spec(v) }
+}
+```
+
+Usage:
+
+```go
+overDue     := Predicate[Invoice](func(inv Invoice) bool { return inv.DaysPastDue >= 30 })
+noticeSent  := Predicate[Invoice](func(inv Invoice) bool { return inv.NoticeCount >= 3 })
+inCollection := Predicate[Invoice](func(inv Invoice) bool { return inv.SentToCollection })
+
+sendToCollection := And(overDue, noticeSent, Not(inCollection))
+
+if sendToCollection(invoice) {
+    collector.Send(invoice)
+}
+```
+
+### Named-type form (GoF / DDD style)
+
+Use this when rules must be registered by name, persisted, or composed via a rule engine.
+
+```go
+type Specification[T any] interface {
+    IsSatisfiedBy(T) bool
+}
+
+type andSpec[T any] struct{ left, right Specification[T] }
+
+func (s andSpec[T]) IsSatisfiedBy(v T) bool {
+    return s.left.IsSatisfiedBy(v) && s.right.IsSatisfiedBy(v)
+}
+
+func And[T any](left, right Specification[T]) Specification[T] {
+    return andSpec[T]{left, right}
+}
+```
+
+The example in `examples/idiom/specification/` uses the named-type form without generics (Go 1.17-era style). Its `BaseSpecification` embedding pattern wires `And`/`Or`/`Not` factory methods onto every concrete specification so they can be chained: `overDue.And(noticeSent).And(inCollection.Not())`.
+
+## When to use
+
+- Business rules need individual names, documentation, and unit tests.
+- Rules are assembled dynamically (e.g., from user configuration or a rule table).
+- The same predicate is used across queries, validation, and display layers and duplication is becoming a maintenance problem.
+- You need serialization or storage of rule combinations (persistence of a composed specification as data).
+
+## When NOT to use
+
+- A plain `if` statement or a `func(T) bool` closure is readable and not repeated — do not add the indirection.
+- The predicate is used in exactly one place; name it with a well-chosen function name instead.
+- Performance is critical in a hot path — a closure chain adds allocations and indirect calls; a hand-written boolean expression is faster.
+- The domain is simple enough that the pattern adds ceremony without benefit.
+
+## Gotchas
+
+- **`InCollectionSpecification` fix**: the upstream example had inverted semantics — `IsSatisfiedBy` returned `!elm.IsSent`, treating `IsSent == false` as "already in collection". The correct semantics: `IsSatisfiedBy` returns `true` when the invoice *is* in the collection (`IsSent == true`). Compose with `Not()` to express "not yet sent to collection". The test error message was also inverted and has been corrected.
+- **Embedding pitfalls**: the example's `BaseSpecification` approach embeds an interface in a struct to inherit `And`/`Or`/`Not`. The embedded field must be wired back to the concrete type via `Relate()` so that `And(s, other).IsSatisfiedBy(x)` dispatches to `s`'s concrete implementation, not to `BaseSpecification.IsSatisfiedBy` (which always returns `false`). Forget `a.Relate(a)` in a constructor and you get silent wrong answers.
+- **Interface nil trap**: a `Specification` variable holding a typed nil pointer (`var s *OverDueSpecification`) is not `nil` when compared as an interface; `s.IsSatisfiedBy(...)` will still dispatch, reaching the concrete method — but the zero `Specification` field in `BaseSpecification` will be `nil`, causing a panic at `And`/`Or`/`Not` call time.
+- **Allocation per composition**: every `And`/`Or`/`Not` call allocates a new struct or closure on the heap. Build the composed specification once and reuse it; do not rebuild inside a tight loop.
+- **Generic vs non-generic**: the functional-combinator form with generics (`Predicate[T]`) is type-safe and reusable across entity types. Pre-generics code (Go < 1.18) must either use `interface{}` with type assertions or repeat the pattern per entity type.
+
+## See also
+
+- skills/idiom/functional-options.md
+- skills/behavioral/strategy.md
+- examples/idiom/specification/
 --- END skills/idiom/specification.md ---
 
 --- BEGIN skills/messaging/fan-in.md ---
@@ -858,12 +2530,80 @@ a goroutine to copy received values to channels in the list in a round-robin fas
 
 # Futures & Promises
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Messaging>/<FuturesPromises>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A Future is a read-only placeholder for a value that will be computed asynchronously. A Promise is the write side — the entity that fulfils or rejects the future. Together they decouple "start the computation" from "wait for its result", allowing callers to kick off multiple concurrent operations and collect results at their convenience.
+
+## Context
+
+Go does not have built-in futures. The idiomatic equivalent is: goroutine + channel. `go func() { ch <- compute() }()` is a one-liner future. The caller blocks on `<-ch` when it needs the result. This is so natural in Go that dedicated "Future" types are rare — most code just passes channels. But a typed `Future[T]` wrapper is useful when:
+
+- The result must be retrievable multiple times by multiple callers (fan-out read).
+- The computation must be cancellable via context.
+- You want to compose futures (wait-all, wait-any).
+- You want to enforce a clean API that hides the channel from callers.
+
+The `Promise[T]`/`Future[T]` split mirrors Scala/Java futures: `Promise` is the producer side (`Resolve`/`Reject`), `Future` is the consumer side (`Get`).
+
+## Implementation in Go
+
+```go
+type result[T any] struct {
+    val T
+    err error
+}
+
+type Future[T any] struct{ ch <-chan result[T] }
+
+type Promise[T any] struct{ ch chan result[T] }
+
+func NewPromise[T any]() (*Promise[T], Future[T]) {
+    ch := make(chan result[T], 1) // buffered: Resolve never blocks
+    return &Promise[T]{ch}, Future[T]{ch}
+}
+
+func (p *Promise[T]) Resolve(v T)    { p.ch <- result[T]{val: v} }
+func (p *Promise[T]) Reject(err error) { p.ch <- result[T]{err: err} }
+
+func (f Future[T]) Get(ctx context.Context) (T, error) {
+    select {
+    case r := <-f.ch:
+        return r.val, r.err
+    case <-ctx.Done():
+        var zero T
+        return zero, ctx.Err()
+    }
+}
+```
+
+A buffered channel of size 1 means `Resolve`/`Reject` never block the producer, and the result is available to any number of callers — though only one gets it (use `sync.Once` + cached result if N callers need the same value).
+
+## When to use
+
+- Kick off N independent async computations and collect results as each finishes.
+- API boundaries where the caller should not know about goroutines or channels.
+- Timeout/cancellation on long-running computations: `Get(ctx)` returns when ctx expires.
+- "Memoised async lookup": compute once, distribute the future, all callers wait for the same result.
+
+## When NOT to use
+
+- Simple one-off async work with no result needed — just `go func()`.
+- Streaming results — a channel iterator or `iter.Seq` (Go 1.23) is cleaner.
+- When multiple callers must each receive the value — add a fan-out layer or use a shared cached result with `sync.Once`.
+- When you already use `errgroup` — `Group.Go` + closures capturing a result slice is more Go-idiomatic for concurrent fan-out.
+
+## Gotchas
+
+- **Channel size 0 (unbuffered)**: if no one calls `Get` before `Resolve`, the producer goroutine blocks forever — goroutine leak. Always buffer the result channel (size 1 for single-result futures).
+- **Multiple Resolve calls**: a second `Resolve` on a buffered-1 channel blocks the caller. Guard with `sync.Once`.
+- **Result channel read by multiple goroutines**: only one goroutine receives from an unbuffered channel. Fan-out via `sync.Once` + caching if N callers need the same result.
+- **Context not cancelling the computation**: `Get` can time out, but the underlying goroutine keeps running. Pass `ctx` into the computation itself.
+
+## See also
+
+- skills/messaging/push-pull.md
+- skills/concurrency/producer-consumer.md
+- examples/messaging/futures-promises/
 --- END skills/messaging/futures-promises.md ---
 
 --- BEGIN skills/messaging/publish-subscribe.md ---
@@ -954,12 +2694,76 @@ by using a buffered inbox and you stop sending events once the inbox is full.
 
 # Push & Pull
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Messaging>/<PushPull>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+In Push-Pull topology (ZeroMQ calls it PUSH/PULL, sometimes called "pipeline" or "task distribution"), pushers send work items and pullers compete to receive them. Each item is delivered to exactly one puller — they share the queue. This is load-balanced distribution without a central scheduler: the fastest puller naturally picks up more items.
+
+The key distinction from broadcast (fan-out to all) is exclusivity: each message goes to exactly one consumer.
+
+## Context
+
+The pattern appears wherever work must be distributed across a dynamic pool of workers without a routing key or topic: task queues, image/video processing pipelines, log ingestion fans, map phase of map-reduce. The implementation in Go is a single shared buffered channel that all pullers receive from — the Go scheduler distributes fairly across blocked receivers.
+
+Comparison:
+- **Broadcast**: one sender, all receivers get every message. Push-Pull: one sender, exactly one receiver per message.
+- **Producer-Consumer**: conceptually the same at the channel level. Push-Pull emphasises the competitive pulling semantic and often has many pushers and many pullers.
+- **Fan-out**: one producer, one channel per receiver (no competition). Push-Pull: one shared channel, receivers compete.
+
+## Implementation in Go
+
+```go
+// A single buffered channel is the entire Push-Pull topology.
+func NewPipeline[T any](buf int) (push func(T), pull func() (T, bool), close_ func()) {
+    ch := make(chan T, buf)
+    return func(v T) { ch <- v },
+           func() (T, bool) { v, ok := <-ch; return v, ok },
+           func() { close(ch) }
+}
+
+// Pushers: goroutines that call push(item).
+// Pullers: goroutines that loop: for { v, ok := pull(); if !ok { return } ... }
+```
+
+A more structured API separates pusher and puller roles into a typed `Pipeline[T]` struct:
+
+```go
+type Pipeline[T any] struct{ ch chan T }
+
+func NewPipeline[T any](buf int) *Pipeline[T] { return &Pipeline[T]{make(chan T, buf)} }
+func (p *Pipeline[T]) Push(ctx context.Context, v T) error {
+    select { case p.ch <- v: return nil; case <-ctx.Done(): return ctx.Err() }
+}
+func (p *Pipeline[T]) Pull() <-chan T { return p.ch }  // pullers range over this
+func (p *Pipeline[T]) Close()          { close(p.ch) }
+```
+
+## When to use
+
+- Distributing tasks across a dynamic pool of workers where the fastest available worker should get the next item.
+- Task queues: N ingestion goroutines push items; M worker goroutines pull and process.
+- Pipeline stages: output of one stage is the input queue for the next — each item flows through exactly once.
+- Throttling: the channel's capacity provides backpressure; pushers block when the queue is full.
+
+## When NOT to use
+
+- When every receiver must see every message — use broadcast (fan-out channels or `sync.Cond.Broadcast`).
+- When messages must be routed based on content — use a topic-based pub-sub or a dispatcher goroutine.
+- When strict ordering per producer must be preserved end-to-end — a single puller (no competition) or a keyed dispatcher.
+- When the number of pullers is exactly one — plain producer-consumer; the "competing" aspect adds no value.
+
+## Gotchas
+
+- **Close from multiple pushers**: only close the channel once. Use a `sync.WaitGroup` sentinel goroutine (same as producer-consumer).
+- **Puller goroutine leak**: if pushers stop but the channel is never closed, pullers block forever. Always close on shutdown.
+- **Back-pressure sizing**: if pushers are faster than pullers and the buffer fills, pushers block. Monitor channel length (`len(ch)`) in production; alert when consistently at capacity.
+- **Context not propagated to Push**: pushers that ignore ctx will keep enqueuing after cancellation, potentially overwhelming the queue.
+
+## See also
+
+- skills/concurrency/producer-consumer.md
+- skills/concurrency/broadcast.md
+- skills/messaging/futures-promises.md
+- examples/messaging/push-pull/
 --- END skills/messaging/push-pull.md ---
 
 --- BEGIN skills/methodology/00-canonical-full.md ---
@@ -2880,12 +4684,101 @@ func BigIntFactorial(x big.Int) *big.Int {
 
 # Bulkhead
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Stability>/<Bulkhead>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Partition resource pools — goroutines, connections, semaphore slots — into
+separate compartments per tenant or call type. Exhaustion or failure inside
+one compartment cannot spill into others. The name comes from watertight
+bulkheads in ship hulls: flooding one compartment does not sink the vessel.
+
+## Context
+
+A single shared thread pool or connection pool is the default in most services.
+Under load, a noisy tenant or a slow call type saturates the pool and starves
+all other callers. Circuit breakers detect failure after the fact; bulkheads
+prevent the resource drain in the first place. The two patterns are
+complementary: bulkheads cap concurrency, circuit breakers cap error propagation.
+
+Use bulkheads when:
+- You serve multiple tenants or priority classes from one process.
+- Different call types have wildly different latency profiles (e.g. fast reads vs. slow exports).
+- You need to guarantee that a degraded dependency can only harm its own callers.
+
+## Implementation in Go
+
+Go's idiomatic bulkhead is a **buffered channel as a semaphore** — one per pool.
+A non-blocking send acquires a slot; a receive releases it. Overflow is
+rejected immediately, never queued.
+
+```go
+type Pool struct {
+    sem chan struct{}
+}
+
+func NewPool(limit int) *Pool {
+    return &Pool{sem: make(chan struct{}, limit)}
+}
+
+func (p *Pool) Do(ctx context.Context, fn func(context.Context) error) error {
+    if ctx.Err() != nil {
+        return ctx.Err()
+    }
+    select {
+    case p.sem <- struct{}{}:
+        defer func() { <-p.sem }()
+    default:
+        return ErrPoolExhausted // fail-fast, never queue
+    }
+    return fn(ctx)
+}
+```
+
+Multiple pools are registered by name at startup. The caller names the pool
+when dispatching work; unknown or exhausted pools return immediately without
+touching any shared state.
+
+A `Bulkhead` registry holds `map[string]*Pool` behind a `sync.RWMutex`.
+Reads (dispatching work) take a read lock; writes (adding pools at startup)
+take a write lock. After startup, only read locks are needed — contention is
+negligible.
+
+Metrics (acquired / rejected / current) are tracked with `atomic.Int64` so
+tests and dashboards can inspect them without an additional lock.
+
+## When to use
+
+- Multi-tenant SaaS where one tenant's traffic spike must not affect others.
+- Mixed priority workloads (interactive vs. batch) sharing one process.
+- Gateway or BFF layers that fan out to multiple downstreams with different SLAs.
+- Anywhere a retry storm in one path could consume all goroutines.
+
+## When NOT to use
+
+- When you have a single consumer class — a global semaphore suffices.
+- When calls are so short-lived that semaphore overhead matters more than isolation.
+- When the downstream can handle unlimited concurrency and your bottleneck is CPU on the calling side.
+
+## Gotchas
+
+- **Forgetting to release.** Always use `defer func() { <-p.sem }()` inside
+  the critical section. A panic before the deferred release permanently leaks
+  a slot. The pattern above is safe because the defer fires even on panic.
+- **Pool-per-goroutine vs. pool-per-tenant.** Pools should map to resource
+  classes, not to individual goroutines. A pool with limit=1 per goroutine
+  defeats the purpose.
+- **Wrong overflow policy.** Queuing behind a full pool hides the problem.
+  Fail-fast and surface `ErrPoolExhausted` so callers know to back off.
+- **Static pool sizing.** In production, expose the limit via config and emit
+  `current`/`limit` as metrics so you can tune without a deploy.
+- **Context cancellation before acquire.** Check `ctx.Err()` before the
+  channel select; a cancelled context should never wait for a slot.
+
+## See also
+
+- `skills/stability/circuit-breaker.md`
+- `skills/stability/fail-fast.md`
+- `skills/anti-patterns/cascading-failures.md`
+- `examples/stability/bulkhead/`
 --- END skills/stability/bulkhead.md ---
 
 --- BEGIN skills/stability/circuit-breaker.md ---
@@ -2998,87 +4891,699 @@ func Breaker(c Circuit, failureThreshold uint32) Circuit {
 
 # Deadline
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Stability>/<Deadline>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Assign a single end-to-end time budget to a request at ingress and propagate
+it unchanged through every downstream call. Each layer automatically inherits
+the shrinking remaining budget via `context.Context`. No layer can silently
+extend the budget — the deadline is monotonically non-increasing.
+
+## Context
+
+Without deadlines, a slow dependency causes goroutines to block indefinitely.
+Retries without a shrinking budget can fire after the client has already given
+up, wasting resources. Timeouts per-attempt and end-to-end deadlines solve
+different problems: a per-attempt timeout resets on retry; an end-to-end
+deadline never resets. Most production systems need both: a short per-attempt
+timeout (prevents a single slow RPC from blocking too long) plus an overall
+deadline (prevents retries from running after the client SLA expires).
+
+## Implementation in Go
+
+`context.WithDeadline` and `context.WithTimeout` are the primitives.
+The key guarantee: if the parent context already has an earlier deadline,
+the child inherits it — you cannot accidentally extend a deadline by passing
+a later one.
+
+```go
+// WithBudget creates a child context capped at budget from now.
+// If parent's deadline is sooner, parent's deadline wins.
+func WithBudget(parent context.Context, budget time.Duration) (context.Context, context.CancelFunc) {
+    return context.WithDeadline(parent, time.Now().Add(budget))
+}
+
+// CheckBudget fails fast if the remaining context budget is less than min.
+// Embed at layer boundaries before expensive sub-calls.
+func CheckBudget(ctx context.Context, min time.Duration) error {
+    if ctx.Err() != nil {
+        return ctx.Err()
+    }
+    if dl, ok := ctx.Deadline(); ok && time.Until(dl) < min {
+        return ErrBudgetExceeded
+    }
+    return nil
+}
+```
+
+For retries, cap the per-attempt timeout to the remaining parent budget so
+retries cannot outlive the end-to-end SLA:
+
+```go
+func Attempt(parent context.Context, perAttempt time.Duration, fn func(context.Context) error) error {
+    rem, _ := RemainingBudget(parent)
+    budget := perAttempt
+    if rem < perAttempt {
+        budget = rem
+    }
+    ctx, cancel := context.WithTimeout(parent, budget)
+    defer cancel()
+    return fn(ctx)
+}
+```
+
+## When to use
+
+- Any RPC or database call that must complete within a customer-facing SLA.
+- Retry loops where individual attempts must not collectively exceed the outer deadline.
+- Fan-out calls where all branches share the same originating request deadline.
+- gRPC services (gRPC propagates deadlines in metadata automatically; use this to enforce them server-side too).
+
+## When NOT to use
+
+- Background jobs with no latency contract — use a cancelable context without a deadline.
+- Batch processing pipelines where work should complete regardless of wall clock.
+- Long-running streaming RPCs where a hard deadline would cut the stream mid-transfer.
+
+## Gotchas
+
+- **Forgetting `defer cancel()`** after `WithDeadline`/`WithTimeout` leaks the timer goroutine until the parent is cancelled. Always defer immediately after creation.
+- **Using `time.Sleep` instead of select.** `time.Sleep` ignores context cancellation. Use `select { case <-time.After(d): ...; case <-ctx.Done(): ... }` or `context.WithTimeout`.
+- **Not checking `errors.Is(err, context.DeadlineExceeded)`** — wrapping libraries often return `context.DeadlineExceeded` unwrapped; use `errors.Is`, not `err == context.DeadlineExceeded`.
+- **Budget not propagated.** If you create a new `context.Background()` mid-call instead of propagating the parent, the deadline is silently lost. Always thread the context through every function boundary.
+- **Clock skew in distributed systems.** The local deadline is meaningless to a remote server. Use gRPC deadlines or pass a `Deadline-Unix-Millis` header so the server can check budget server-side.
+
+## See also
+
+- `skills/stability/fail-fast.md`
+- `skills/stability/circuit-breaker.md`
+- `skills/anti-patterns/cascading-failures.md`
+- `examples/stability/deadline/`
 --- END skills/stability/deadline.md ---
 
 --- BEGIN skills/stability/fail-fast.md ---
 
 # Fail-Fast
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Stability>/<FailFast>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Surface errors at the earliest detectable point in the system's lifecycle:
+at startup (configuration), at request ingress (input validation), or at the
+handler boundary (readiness probe). A system that fails fast gives operators
+and callers an immediate, precise signal rather than a slow, confusing cascade
+of downstream errors.
+
+## Context
+
+The opposite default is retry-with-backoff: the system optimistically attempts
+work and handles failure later. Fail-Fast is appropriate when the system can
+determine locally, without attempting the work, that success is impossible —
+a required field is missing, a dependency is down, or a precondition is
+obviously violated. Retrying in that state wastes resources and delays the
+useful error signal.
+
+Fail-Fast appears in three distinct phases:
+
+1. **Startup**: Validate all configuration and exit immediately if anything is
+   wrong. Operators see the full list of problems, not one per restart.
+2. **Ingress**: Validate every inbound request at the handler boundary before
+   any downstream work begins. Reject early with a typed error.
+3. **Readiness**: Register probes (DB ping, dependency health check) that
+   re-validate the system's ability to serve. Reject requests when probes fail.
+
+## Implementation in Go
+
+```go
+// Startup: collect all config errors before returning.
+func (c Config) Validate() error {
+    var errs []string
+    if c.Addr == "" {
+        errs = append(errs, "Addr: must not be empty")
+    }
+    if c.MaxConns <= 0 {
+        errs = append(errs, "MaxConns: must be > 0")
+    }
+    if len(errs) > 0 {
+        return errors.New(strings.Join(errs, "; "))
+    }
+    return nil
+}
+
+// Ingress: typed error so callers can errors.As to HTTP 400.
+type ErrBadRequest struct{ Reason string }
+func (e *ErrBadRequest) Error() string { return "bad request: " + e.Reason }
+
+func (r Request) Validate() error {
+    if r.UserID == "" {
+        return &ErrBadRequest{"UserID must not be empty"}
+    }
+    return nil
+}
+
+// Readiness: atomic bool, safe under concurrent HTTP requests.
+type Handler struct {
+    ready  atomic.Bool
+    probes []func(context.Context) error
+}
+
+func (h *Handler) Handle(ctx context.Context, fn func(context.Context) error) error {
+    if !h.ready.Load() {
+        return ErrNotReady
+    }
+    for _, p := range h.probes {
+        if err := p(ctx); err != nil {
+            return fmt.Errorf("%w: probe: %w", ErrNotReady, err)
+        }
+    }
+    return fn(ctx)
+}
+```
+
+## When to use
+
+- Config-heavy services where a mis-typed env var should crash the process, not degrade silently.
+- HTTP/gRPC handlers where malformed requests are common and expensive to propagate.
+- Services with hard external dependencies that must be healthy before serving traffic.
+- Kubernetes deployments — pair with a readiness probe endpoint so the load balancer never routes to an unready pod.
+
+## When NOT to use
+
+- When the error is transient and retrying after a backoff is likely to succeed (network blip, lock contention).
+- When partial success is acceptable — e.g. a batch job that should continue processing other items despite one failure.
+- When the "ready" check itself is expensive and would create a hot-loop under high request rates (cache the probe result with a short TTL instead).
+
+## Gotchas
+
+- **Collecting vs. returning the first error.** Return all config errors at once; operators should not have to restart the process three times to find three problems.
+- **Probe caching vs. freshness.** Probes run on every request if uncached. Under high load this can become the bottleneck. Cache with a short TTL (1–5s) and return the cached result instead.
+- **Race on `ready` flag.** Use `atomic.Bool` (Go 1.19+), not a bare `bool` guarded by no lock. Multiple goroutines read `ready` on every request.
+- **Forgetting the startup check exits non-zero.** `os.Exit(1)` (or `log.Fatal`) after a failed `Validate()` is intentional — a process that silently continues with bad config is worse than one that crashes clearly.
+- **Conflating fail-fast with panic.** Reserve `panic` for truly unrecoverable programmer errors (nil dereference, invariant violation). Fail-fast for operator-fixable problems uses `error` returns.
+
+## See also
+
+- `skills/stability/deadline.md`
+- `skills/stability/circuit-breaker.md`
+- `skills/stability/handshaking.md`
+- `examples/stability/fail-fast/`
 --- END skills/stability/fail-fast.md ---
 
 --- BEGIN skills/stability/handshaking.md ---
 
 # Handshaking
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Stability>/<Handshaking>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Before submitting work, the client asks the server "how much can you accept
+right now?" and adapts accordingly. The server advertises its available
+concurrency budget (and optionally a lease TTL for caching). If the budget
+is zero, the client refuses to send — preventing wasted RPCs and reducing
+pressure on an already-struggling server.
+
+## Context
+
+Without handshaking, clients discover overload reactively: they send, the
+server queues or drops, the client retries, the problem compounds. Handshaking
+shifts the conversation earlier: the server signals capacity proactively and
+the client adapts before generating load. This is the same mechanism HTTP/2
+uses with `SETTINGS_MAX_CONCURRENT_STREAMS` — the server pushes a budget and
+the client enforces it locally.
+
+Handshaking complements circuit breakers (which open after observed failures)
+and bulkheads (which cap client-side concurrency). It adds a server-driven
+signal to the client's admission control, replacing guesswork with negotiation.
+
+## Implementation in Go
+
+The server exposes a capacity endpoint (a plain function in the model below;
+an HTTP handler in production). The client fetches and caches it for the
+lease TTL, then checks before each send:
+
+```go
+type CapacityResponse struct {
+    Slots    int           // available concurrent request budget
+    LeaseTTL time.Duration // how long to trust this response
+}
+
+// Server: enforce limit server-side too — client check is advisory.
+func (s *Server) Capacity() CapacityResponse {
+    s.mu.Lock()
+    avail := s.limit - s.inFlight
+    s.mu.Unlock()
+    return CapacityResponse{Slots: avail, LeaseTTL: 500 * time.Millisecond}
+}
+
+// Client: cache the advertisement for LeaseTTL, then check before each send.
+func (c *Client) Send(ctx context.Context, fn func(context.Context) error) error {
+    resp, err := c.capacity(ctx) // re-fetches when lease expires
+    if err != nil {
+        return fmt.Errorf("capacity check: %w", err)
+    }
+    if resp.Slots <= 0 {
+        return ErrCapacityExceeded
+    }
+    return fn(ctx)
+}
+```
+
+The server still enforces the limit on its own mutex — the client check is
+advisory, not authoritative. This prevents a misbehaving or misconfigured
+client from bypassing the guard.
+
+## When to use
+
+- Clients that fan out to a downstream with unpredictable or bursty capacity.
+- Rate-limited APIs where you want to avoid wasting quota on requests that will be rejected.
+- Systems that need graceful degradation: when capacity drops to zero, callers get a clean error rather than a timeout storm.
+- Any protocol that natively supports capacity advertisements (gRPC flow control, HTTP/2 SETTINGS, AMQP prefetch).
+
+## When NOT to use
+
+- When the downstream has effectively unlimited capacity (well-scaled CDN, object storage).
+- When the capacity endpoint itself becomes a bottleneck — mitigate with a longer LeaseTTL or a push-based mechanism.
+- When latency of the capacity check exceeds the latency of the actual call.
+
+## Gotchas
+
+- **Server-side enforcement is not optional.** A malicious or buggy client can skip the handshake. The server must enforce its limit independently.
+- **Lease TTL too long.** A long TTL means the client sends to a server whose capacity has dropped significantly since the last fetch. Tune TTL to be shorter than the time it takes the server to become saturated.
+- **Lease TTL too short.** Every request hits the capacity endpoint — doubles your RPC count. Cache aggressively for stable capacity, less so for volatile.
+- **Thundering herd on lease expiry.** If 100 clients expire their lease simultaneously, they all hit the capacity endpoint at once. Add jitter: `LeaseTTL + rand.Duration(0, 50ms)`.
+- **Zero-slots ≠ error.** `ErrCapacityExceeded` is not a server error; it is a load-shedding signal. The client should backoff and retry, not circuit-break.
+
+## See also
+
+- `skills/stability/bulkhead.md`
+- `skills/stability/circuit-breaker.md`
+- `skills/stability/fail-fast.md`
+- `examples/stability/handshaking/`
 --- END skills/stability/handshaking.md ---
 
 --- BEGIN skills/stability/steady-state.md ---
 
 # Steady-State
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Stability>/<SteadyState>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+Ensure that every resource the system accumulates is also actively reclaimed
+on a schedule, so that memory, disk, and connection usage converge to a stable
+ceiling under sustained load rather than growing unboundedly. The system does
+not merely survive load — it reaches equilibrium.
+
+## Context
+
+Any cache, log buffer, metrics ring, or connection pool that grows in response
+to traffic will exhaust available memory or disk if not actively bounded. The
+usual failure mode is an OOM kill hours into a load test, or a disk-full error
+at 3 AM. Steady-State addresses this by pairing every accumulation mechanism
+with a reclamation mechanism of equal or greater throughput.
+
+Go-specific examples:
+- An in-process cache evicting expired entries via a janitor goroutine.
+- A metrics ring buffer capped at N entries, overwriting oldest on overflow.
+- A background log compactor rotating files when they exceed a size threshold.
+- A `sync.Pool` for buffer reuse (Go's GC reclaims pools under pressure automatically).
+
+## Implementation in Go
+
+Two complementary patterns:
+
+**1. TTL cache with a janitor goroutine:**
+
+```go
+type Cache struct {
+    mu    sync.RWMutex
+    items map[string]entry  // entry carries expiresAt time.Time
+    max   int
+    stop  chan struct{}
+}
+
+func (c *Cache) Start(ctx context.Context) {
+    go func() {
+        t := time.NewTicker(c.interval)
+        defer t.Stop()
+        for {
+            select {
+            case <-t.C:
+                c.evictExpired()
+            case <-ctx.Done():
+                return
+            case <-c.stop:
+                return
+            }
+        }
+    }()
+}
+```
+
+The janitor exits cleanly via `ctx.Done()` or `c.stop` — no goroutine leak.
+The cache also enforces a capacity cap at write time, shedding inserts when
+full and no expired entry is available to evict.
+
+**2. Fixed-size ring buffer (generic, Go 1.21+):**
+
+```go
+type RingBuffer[T any] struct {
+    mu   sync.Mutex
+    buf  []T
+    head int  // next write position
+    size int  // number of valid entries
+    cap  int
+}
+
+func (r *RingBuffer[T]) Push(v T) {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+    r.buf[r.head] = v
+    r.head = (r.head + 1) % r.cap
+    if r.size < r.cap {
+        r.size++
+    }
+    // oldest entry silently overwritten when full — zero allocation
+}
+```
+
+Memory is bounded at construction time. No dynamic growth; no GC pressure
+from append growth; predictable `len(buf) * sizeof(T)` footprint.
+
+## When to use
+
+- In-process caches that must not grow unboundedly under write-heavy workloads.
+- Metrics and audit log buffers where the newest N entries are what matter.
+- Connection pools that must be periodically pruned of idle connections.
+- Any background accumulation that lacks a natural drain (e.g. deduplication sets, bloom filters with a TTL).
+
+## When NOT to use
+
+- When data must be durable — ring buffers and janitor eviction are lossy by design.
+- When the reclamation interval is so long that resource usage grows catastrophically between sweeps.
+- When `sync.Pool` suffices — the GC already reclaims pooled objects under memory pressure; no janitor needed.
+
+## Gotchas
+
+- **Janitor goroutine leak.** If `Start` is called without a paired `Stop` or a cancellable context, the goroutine runs forever. Always document the lifecycle contract.
+- **Eviction under the wrong lock.** `evictExpired` must hold the write lock. Evicting under a read lock causes a data race.
+- **Capacity cap that starves long-lived entries.** If the eviction strategy is purely LRU and all entries are non-expired, new writes are always shed. Mix TTL-based and capacity-based eviction.
+- **Clock skew in `time.Now()`.** On VMs, wall-clock jumps can cause entries to appear expired that are not. For latency-sensitive eviction, consider monotonic clock (`time.Since`) instead of wall-clock comparison.
+- **Ring buffer index arithmetic.** Off-by-one errors in `(head - size + cap) % cap` are the most common bug. Write the formula once, cover it with boundary tests (full, one entry, power-of-two and non-power-of-two capacities).
+
+## See also
+
+- `skills/stability/bulkhead.md`
+- `skills/stability/fail-fast.md`
+- `examples/stability/steady-state/`
 --- END skills/stability/steady-state.md ---
 
 --- BEGIN skills/structural/adapter.md ---
 
 # Adapter
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Structural/Adapter/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/structural/adapter/`
+## Intent
+
+Adapter converts the interface of an existing type into the interface a client expects, enabling types that would otherwise be incompatible to cooperate. It is the "plug adapter" of software design: no internals change, only the shape of the socket.
+
+## Context
+
+Adapter appears whenever you must integrate a third-party library, a legacy package, or a stdlib primitive into a codebase that has defined its own interface contract. It is also the mechanism behind every `io.Reader`/`io.Writer` adapter in the standard library (`strings.NewReader`, `bytes.NewBuffer`, `gzip.NewWriter`, etc.) — the canonical Go examples of the pattern in the wild.
+
+Reach for Adapter when:
+- You cannot (or should not) modify the source type.
+- The mismatch is purely structural: the methods exist but have different names, signatures, or calling conventions.
+- A functional option or middleware chain would be overkill for a one-off translation.
+
+If you control both sides, prefer redesigning the interface rather than layering an adapter.
+
+## Implementation in Go
+
+Go's small, implicit interfaces make Adapter especially lightweight. A struct that embeds the adaptee gets all its methods for free and only needs to override the ones that need translation. The adapter is rarely more than 15 lines.
+
+```go
+// Target is the interface the rest of the codebase expects.
+type Target interface {
+    Request() string
+}
+
+// Adaptee is a third-party type with an incompatible method name.
+type Adaptee struct{}
+
+func (a *Adaptee) SpecificRequest() string { return "Request" }
+
+// Adapter wraps Adaptee and satisfies Target.
+// Embedding gives us Adaptee's methods; we override only what differs.
+type Adapter struct {
+    *Adaptee
+}
+
+func (a *Adapter) Request() string {
+    return a.SpecificRequest() // translate the call
+}
+
+// NewAdapter is the constructor; callers only see Target.
+func NewAdapter(adaptee *Adaptee) Target {
+    return &Adapter{adaptee}
+}
+```
+
+This is the shape used in `examples/structural/adapter/`. The embedding means `Adapter` inherits any future methods added to `Adaptee` at no cost, while still presenting the `Target` interface to callers.
+
+### Functional alternative
+
+When the interface has a single method (very common in Go), a plain function type adapter is even simpler:
+
+```go
+type TargetFunc func() string
+
+func (f TargetFunc) Request() string { return f() }
+
+// Wrap an incompatible function in one line — no struct needed.
+var t Target = TargetFunc(existingFunc)
+```
+
+## When to use
+
+- Integrating a third-party package whose types do not match your domain interface.
+- Wrapping stdlib primitives (`http.ResponseWriter`, `io.Reader`) to add domain-specific methods.
+- Testing: adapting a real dependency to a mock-friendly interface without touching the dependency.
+- Making two packages developed independently interoperate.
+
+## When NOT to use
+
+- You own both sides — just change one of them.
+- The mismatch is in behaviour, not interface shape; Adapter only translates signatures.
+- You need to add cross-cutting concerns (logging, retries) to every call — use Decorator instead.
+- The adaptee has dozens of methods and you only care about three — consider a narrow interface and a thin delegation struct without embedding.
+
+## Gotchas
+
+- **Embedding leaks the adaptee's full API.** If `Adaptee` has 20 methods and `Target` has 1, embedding exposes all 20. Use a named field (`adaptee *Adaptee`) and delegate explicitly when the public surface must stay tight.
+- **Pointer vs value receiver confusion.** Embedding `*Adaptee` satisfies interfaces that require pointer receivers on `Adaptee`. Embedding `Adaptee` (value) does not — a common compile error when wrapping third-party types.
+- **Nil adaptee.** Constructor functions should guard against a nil adaptee if the adapter will be stored and called later.
+- **Interface widening.** Returning `Target` from the constructor (not `*Adapter`) prevents callers from casting back to the concrete type and bypassing the adapter — maintain the abstraction boundary.
+
+## See also
+
+- skills/structural/decorator.md — adds behaviour; Adapter only translates the interface
+- skills/structural/proxy.md — controls access; Adapter changes the API shape
+- examples/structural/adapter/
 --- END skills/structural/adapter.md ---
 
 --- BEGIN skills/structural/bridge.md ---
 
 # Bridge
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Structural/Bridge/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/structural/bridge/`
+## Intent
+
+Bridge decouples an abstraction from its implementation so that the two can vary independently. Instead of a combinatorial explosion of subtypes (M abstractions × N implementations = M×N classes), you compose one axis into the other via an interface field — keeping both axes open to extension without touching existing code.
+
+## Context
+
+The classic symptom is a type hierarchy that grows in two dimensions at once. Imagine shapes and renderers: `CircleVectorRenderer`, `CircleRasterRenderer`, `SquareVectorRenderer`, `SquareRasterRenderer`. Add a third renderer and you need two new types; add a new shape and you need one new type per renderer. Bridge collapses that to `Shapes + Renderers`, combined at runtime.
+
+In Go, the pattern surfaces naturally wherever a struct holds an interface field injected via constructor — which is extremely common. Bridge is less a dramatic refactoring and more a reminder that the injected interface field is doing architectural work: it is the bridge itself.
+
+Compare with plain interface use: if only one axis varies (you swap implementations but the abstraction is fixed), a single interface is sufficient. Bridge is the right name when **both** axes vary and evolve independently.
+
+## Implementation in Go
+
+The example in `examples/structural/bridge/` models cars and engines. `Car` (abstraction) holds an `Enginer` (implementation interface). Any engine snaps into any car; new engines or new car types are independent additions.
+
+```go
+// Enginer is the "implementation" side of the bridge.
+type Enginer interface {
+    GetSound() string
+}
+
+// Carer is the "abstraction" side.
+type Carer interface {
+    Rase() string
+}
+
+// Car is the refined abstraction — it delegates to the engine.
+type Car struct {
+    engine Enginer // <-- this field IS the bridge
+}
+
+func NewCar(engine Enginer) Carer {
+    return &Car{engine: engine}
+}
+
+func (c *Car) Rase() string {
+    return c.engine.GetSound()
+}
+
+// Concrete implementations — completely independent of Car.
+type EngineSuzuki struct{}
+func (e *EngineSuzuki) GetSound() string { return "SssuuuuZzzuuuuKkiiiii" }
+
+type EngineHonda struct{}
+func (e *EngineHonda) GetSound() string { return "HhoooNnnnnnnnnDddaaaaaaa" }
+```
+
+Usage:
+
+```go
+car := NewCar(&EngineSuzuki{})
+fmt.Println(car.Rase()) // SssuuuuZzzuuuuKkiiiii
+
+car2 := NewCar(&EngineHonda{})
+fmt.Println(car2.Rase()) // HhoooNnnnnnnnnDddaaaaaaa
+```
+
+No new types needed to mix any car with any engine.
+
+### When a plain interface is enough
+
+If your abstraction has only one concrete form, there is no Bridge — there is just good interface usage. Bridge implies at least two concrete `Car` types in addition to multiple `Enginer` implementations. Do not name something a Bridge just because it has an interface field.
+
+## When to use
+
+- Two independent dimensions of variation cause a type-count explosion under single inheritance.
+- You want to swap implementations at runtime (e.g., swap a real database engine for an in-memory one in tests) without changing the abstraction.
+- Platform portability: the abstraction is stable; multiple platform-specific implementations evolve separately.
+- A plugin architecture where the "host" abstraction and "guest" implementations are maintained by different teams.
+
+## When NOT to use
+
+- Only one axis varies — a plain interface is simpler and carries less naming overhead.
+- The abstraction and implementation never change after initial design — Bridge's flexibility adds complexity for no gain.
+- You find yourself adding a Bridge "just in case" — GoF structural patterns should solve a present problem, not a hypothetical one.
+
+## Gotchas
+
+- **Nil implementation field.** If `engine` is not set before `Rase()` is called, you get a nil-pointer panic. Enforce injection in the constructor and return an error or panic early rather than deferring the failure.
+- **Over-abstraction.** Two interfaces with one implementation each is not Bridge — it is premature abstraction. Wait until you actually have two concrete implementations on each axis.
+- **Interface bloat on the implementation side.** Keep `Enginer` minimal (one or two methods). A fat implementation interface defeats the point: implementations become hard to swap and easy to break.
+- **Concurrency.** If the bridge field can be swapped at runtime, guard it with a `sync.RWMutex`. Unsynchronised field replacement is a data race under `-race`.
+
+## See also
+
+- skills/structural/adapter.md — translates an interface; Bridge composes two independent interfaces
+- skills/structural/strategy.md — similar composition; Strategy focuses on swappable algorithms, Bridge on decoupling two structural axes
+- examples/structural/bridge/
 --- END skills/structural/bridge.md ---
 
 --- BEGIN skills/structural/composite.md ---
 
 # Composite
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Structural/Composite/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/structural/composite/`
+## Intent
+
+Composite lets clients treat individual objects (leaves) and groups of objects (composites/branches) through a single unified interface. The tree can be traversed without the caller knowing — or caring — whether it is talking to a leaf or a subtree. Operations on the tree are naturally recursive.
+
+## Context
+
+Whenever your domain has a part-whole hierarchy — where a "whole" contains zero or more "parts" that are themselves valid wholes — Composite is the right shape. File systems are the canonical example: a directory is a collection of files and directories, and both respond to `Print`, `Size`, or `Walk`. UI toolkits, scene graphs, expression trees, bill-of-materials, and org charts all exhibit the same pattern.
+
+The key question: "Do leaves and composites need to satisfy the same interface?" If yes, Composite is appropriate. If leaves and composites have fundamentally different operations, keep them as separate types.
+
+## Implementation in Go
+
+`examples/structural/composite/` models a file-system tree. Both `Directory` (branch) and `File` (leaf) implement the `Component` interface. The composite (`Directory`) holds a slice of `Component`, so it can contain both files and subdirectories.
+
+```go
+// Component is the uniform interface for both leaves and branches.
+type Component interface {
+    Add(child Component)
+    Name() string
+    Child() []Component
+    Print(prefix string) string
+}
+
+// Directory is a composite — it holds other Components.
+type Directory struct {
+    name   string
+    childs []Component
+}
+
+func (d *Directory) Add(child Component) { d.childs = append(d.childs, child) }
+func (d *Directory) Name() string        { return d.name }
+func (d *Directory) Child() []Component  { return d.childs }
+
+func (d *Directory) Print(prefix string) string {
+    result := prefix + "/" + d.Name() + "\n"
+    for _, c := range d.Child() {
+        result += c.Print(prefix + "/" + d.Name()) // recursive
+    }
+    return result
+}
+
+// File is a leaf — Add is a no-op, Child returns empty.
+type File struct{ name string }
+
+func (f *File) Add(_ Component)      {}
+func (f *File) Name() string         { return f.name }
+func (f *File) Child() []Component   { return []Component{} }
+func (f *File) Print(prefix string) string {
+    return prefix + "/" + f.Name() + "\n"
+}
+```
+
+### Go-specific consideration: the leaf `Add` no-op
+
+In many Composite implementations the leaf's `Add` silently does nothing. That is acceptable for traversal-only use cases but can hide bugs. If callers should never call `Add` on a leaf, consider making `Add` a method only on the composite and narrowing the interface:
+
+```go
+// Narrower approach: split the interface
+type Node interface {
+    Name() string
+    Print(prefix string) string
+}
+
+type Container interface {
+    Node
+    Add(child Node)
+    Children() []Node
+}
+```
+
+This is more idiomatic Go (prefer small interfaces) at the cost of losing the perfect uniformity the GoF shape provides. Choose based on whether callers must treat leaves and composites identically.
+
+## When to use
+
+- The domain is a recursive part-whole hierarchy.
+- Client code should not distinguish between individual items and collections of items.
+- You want operations (size, print, search) to propagate automatically through the tree without special-casing.
+- Adding new leaf or composite types should not require changes to client traversal code.
+
+## When NOT to use
+
+- The hierarchy is shallow and fixed — a simple slice or map is clearer.
+- Leaves and composites have meaningfully different operations; forcing them into one interface produces awkward no-ops.
+- You need fine-grained control over traversal order with complex context — consider a separate Visitor instead of recursion baked into the components.
+- Cycles are possible in the graph — Composite's recursive traversal will hang. Use an explicit visited set or choose a different traversal strategy.
+
+## Gotchas
+
+- **Unbounded recursion.** Deep trees can exhaust the call stack. For trees deeper than a few thousand levels, replace recursion with an explicit stack (`[]Component`).
+- **Silently ignoring `Add` on leaves.** The no-op is convenient but masks programming errors. At minimum log a warning; in strict APIs return an error.
+- **Shared children.** If the same `Component` is added to two parents, mutations (rename, delete) will affect both subtrees. Enforce single-parent ownership or make components immutable.
+- **Nil children.** Guard `Add` against nil arguments; a nil element in the child slice causes a panic on the next `Print` call.
+- **Thread safety.** Concurrent `Add` and `Print` on the same `Directory` is a data race. Protect the slice with a `sync.RWMutex` if the tree is modified after construction.
+
+## See also
+
+- skills/structural/decorator.md — wraps a single object; Composite aggregates many
+- skills/structural/proxy.md — delegates to one object; Composite delegates to N
+- examples/structural/composite/
 --- END skills/structural/composite.md ---
 
 --- BEGIN skills/structural/decorator.md ---
@@ -3130,26 +5635,232 @@ f(5)
 
 # Facade
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Structural/Facade/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/structural/facade/`
+## Intent
+
+Facade provides a single, simplified entry point to a subsystem of cooperating types. It does not add new behaviour — it orchestrates existing behaviour and hides the sequence, dependencies, and internal types from callers. The subsystem remains accessible directly when needed; the facade is a convenience, not a wall.
+
+## Context
+
+As a subsystem grows, callers accumulate knowledge of its internals: which types to instantiate, in what order to call methods, and which error conditions to handle. That coupling makes callers fragile to subsystem changes and hard to test. A Facade absorbs that knowledge into one place.
+
+In Go, the idiom often manifests as a thin top-level package or a single exported struct that delegates to several internal (unexported) types. The `net/http` package is the canonical stdlib example: `http.ListenAndServe` is a facade over `net.Listen`, `http.Server`, and the underlying `net.Conn` machinery. You can bypass it and use those primitives directly, but 95 % of HTTP servers never need to.
+
+## Implementation in Go
+
+The example in `examples/structural/facade/` models the old saying "a real man must build a house, grow a tree, and raise a child." `Man` is the facade that sequences three subsystems (`House`, `Tree`, `Child`) behind a single `Todo()` call.
+
+```go
+// NewMan wires up the subsystem — callers do not construct subsystem types.
+func NewMan() *Man {
+    return &Man{
+        house: &House{},
+        tree:  &Tree{},
+        child: &Child{},
+    }
+}
+
+type Man struct {
+    house *House
+    tree  *Tree
+    child *Child
+}
+
+// Todo is the single façade method; it orchestrates three subsystems.
+func (m *Man) Todo() string {
+    return strings.Join([]string{
+        m.house.Build(),
+        m.tree.Grow(),
+        m.child.Born(),
+    }, "\n")
+}
+```
+
+Subsystem types (`House`, `Tree`, `Child`) remain exported so "advanced" callers can use them directly — consistent with the GoF guideline that a facade does not restrict access.
+
+### Package-level facade
+
+In idiomatic Go, the facade is often a package rather than a struct. A thin `api` or `service` package exposes a handful of functions, while the heavy lifting happens in unexported sub-packages. This is the shape of `database/sql` (facade) over the internal `driver` interfaces.
+
+```go
+// api/api.go — package-level facade
+func ProcessOrder(id string) error {
+    inv := inventory.Reserve(id)
+    pay := payment.Charge(inv.Price())
+    return shipping.Dispatch(inv, pay)
+}
+```
+
+## When to use
+
+- Onboarding developers: a facade reduces the learning surface of a complex subsystem.
+- You have a stable high-level workflow and want to decouple it from subsystem evolution.
+- Testing: mock the facade rather than all its internal dependencies.
+- Providing a "batteries included" default while still leaving the internals available for power users.
+- Reducing import graphs — the facade re-exports only what callers need; subsystem packages stay internal.
+
+## When NOT to use
+
+- The subsystem is simple — a facade would just be a passthrough with no value.
+- Callers genuinely need fine-grained control; hiding that behind a facade forces them to work around it.
+- The facade becomes a "god object" that grows unbounded — if every feature request ends up in the facade, break it into multiple smaller facades.
+- You want the facade to enforce access control — use Proxy instead, which is designed for controlled delegation.
+
+## Gotchas
+
+- **Facade creep.** It is tempting to add methods to the facade forever. Keep it focused on the most common workflows; unusual use cases should go to the subsystem directly.
+- **Hidden errors.** Orchestrating multiple subsystem calls means multiple potential error sites. Do not swallow errors silently. Propagate them clearly, or define a domain-specific error type.
+- **Constructor complexity.** If `NewMan` needs to wire dozens of dependencies, consider dependency injection or a builder. A constructor that does a lot of work is itself a smell.
+- **Testing the facade vs the subsystems.** Test the facade at integration level and each subsystem in isolation. Avoid re-testing subsystem logic through the facade — that duplicates tests and obscures which component failed.
+- **Concurrency.** If the facade is shared across goroutines and delegates to stateful subsystems, ensure each subsystem is safe for concurrent use or serialize access in the facade.
+
+## Facade vs other patterns
+
+| Pattern | Key question | Typical shape |
+|---|---|---|
+| Facade | "How do I simplify a subsystem?" | One struct delegates to N internal types |
+| Adapter | "How do I make an incompatible type fit an interface?" | One struct wraps one foreign type |
+| Proxy | "How do I control access to one object?" | One struct wraps one same-interface object |
+| Mediator | "How do I decouple N objects from each other?" | Central hub objects talk to; they don't know each other |
+
+The distinction between Facade and Mediator is subtle: the facade speaks to the subsystem but the subsystem does not speak back through the facade. In a Mediator the communication is bidirectional.
+
+## See also
+
+- skills/structural/adapter.md — makes incompatible interfaces fit; Facade simplifies a compatible but complex interface
+- skills/structural/proxy.md — controls access to one object; Facade orchestrates many objects
+- examples/structural/facade/
 --- END skills/structural/facade.md ---
 
 --- BEGIN skills/structural/flyweight.md ---
 
 # Flyweight
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/Structural/Flyweight/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
-> **Existing example:** see `examples/structural/flyweight/`
+## Intent
+
+Flyweight reduces memory consumption by sharing common state across many fine-grained objects. The pattern splits object state into two parts: **intrinsic** (immutable, shared, cached) and **extrinsic** (context-specific, passed in at call time). A factory ensures that each unique intrinsic state is instantiated only once.
+
+## Context
+
+Flyweight is a memory-optimisation pattern. Apply it when profiling reveals that a large number of nearly-identical objects is consuming significant heap. The trigger is usually: N objects, each holding the same M bytes of immutable data — multiplied blindly instead of shared.
+
+Classic examples: glyphs in a text editor (character bitmap shared, position extrinsic), particles in a game engine (sprite image shared, position/velocity extrinsic), icons in a file manager (image data shared, filename/path extrinsic).
+
+In Go the pattern often converges on two idioms:
+1. **A keyed factory map** (as in the example) — best when object identity matters and you query by a string key.
+2. **`sync.Pool`** — best when objects are short-lived (request-scoped buffers), creation is cheap, and you don't need per-key identity.
+
+Know which one fits before reaching for the pattern.
+
+## Implementation in Go
+
+The example in `examples/structural/flyweight/` models image rendering. The filename is intrinsic state (loaded once, shared). Width, height, and opacity are extrinsic state (passed to `Draw` each call).
+
+```go
+// Flyweighter defines the shared object's interface.
+// Extrinsic state (width, height, opacity) is passed per call.
+type Flyweighter interface {
+    Draw(width, height int, opacity float64) string
+}
+
+// ConcreteFlyweight holds only intrinsic state.
+type ConcreteFlyweight struct {
+    filename string // intrinsic — immutable, shared
+}
+
+func (f *ConcreteFlyweight) Draw(width, height int, opacity float64) string {
+    return fmt.Sprintf("draw image: %s, width: %d, height: %d, opacity: %.2f",
+        f.filename, width, height, opacity)
+}
+
+// FlyweightFactory caches instances by intrinsic key.
+type FlyweightFactory struct {
+    pool map[string]Flyweighter
+}
+
+func (f *FlyweightFactory) GetFlyweight(filename string) Flyweighter {
+    if f.pool == nil {
+        f.pool = make(map[string]Flyweighter)
+    }
+    if _, ok := f.pool[filename]; !ok {
+        f.pool[filename] = &ConcreteFlyweight{filename: filename}
+    }
+    return f.pool[filename]
+}
+```
+
+Two calls with `"cat.jpg"` return the **same** `*ConcreteFlyweight`; only `Draw` is called again with different extrinsic state.
+
+### sync.Pool alternative
+
+When flyweights are short-lived (e.g., request buffers), `sync.Pool` is idiomatic and GC-friendly:
+
+```go
+var bufPool = sync.Pool{
+    New: func() any { return new(bytes.Buffer) },
+}
+
+func handle(data []byte) {
+    buf := bufPool.Get().(*bytes.Buffer)
+    buf.Reset()
+    defer bufPool.Put(buf)
+    buf.Write(data)
+    // use buf ...
+}
+```
+
+`sync.Pool` does not guarantee identity across GC cycles — use the keyed factory map when you need stable, long-lived shared objects.
+
+## When to use
+
+- Thousands or millions of fine-grained objects are eating measurable memory.
+- Objects share a large chunk of immutable state (intrinsic) and differ only in small per-call context (extrinsic).
+- Object creation is expensive (IO, decoding) and creation frequency is high enough that caching pays off.
+- Short-lived, poolable allocations with `sync.Pool` (buffers, decoders, serialisers).
+
+## When NOT to use
+
+- The object count is small — premature optimisation adds complexity with no measurable benefit.
+- Intrinsic state is mutable — sharing mutable state is a data race waiting to happen.
+- The extrinsic state is large enough that passing it per call costs more than the allocation saved.
+- Object identity semantics matter to callers (pointer equality) — callers may be surprised to receive the same pointer from two "different" requests.
+
+## Gotchas
+
+- **Concurrent factory access.** The keyed map is not safe for concurrent use. Protect with a `sync.RWMutex` or use `sync.Map` if reads vastly outnumber writes.
+
+```go
+type FlyweightFactory struct {
+    mu   sync.RWMutex
+    pool map[string]Flyweighter
+}
+
+func (f *FlyweightFactory) GetFlyweight(filename string) Flyweighter {
+    f.mu.RLock()
+    fw, ok := f.pool[filename]
+    f.mu.RUnlock()
+    if ok {
+        return fw
+    }
+    f.mu.Lock()
+    defer f.mu.Unlock()
+    if fw, ok = f.pool[filename]; !ok { // double-check after acquiring write lock
+        fw = &ConcreteFlyweight{filename: filename}
+        f.pool[filename] = fw
+    }
+    return fw
+}
+```
+
+- **Intrinsic state mutation.** If a flyweight is shared and its fields are mutated, all sharers see the change — and the race detector will fire. Make intrinsic state read-only by convention or use unexported fields with no setters.
+- **Factory memory growth.** The pool map grows without bound if the key space is unbounded. Add an eviction policy (LRU, TTL) for long-running services with many unique keys.
+- **sync.Pool eviction.** `sync.Pool` objects can be reclaimed at any GC cycle. Never store state in a pooled object that must survive beyond a single operation.
+- **Measuring first.** Flyweight is a response to a measured memory problem. Applying it speculatively produces complex code for no benefit. Profile before you pool.
+
+## See also
+
+- skills/structural/proxy.md — controls access; Flyweight controls allocation
+- skills/structural/facade.md — simplifies an API; Flyweight optimises memory layout
+- examples/structural/flyweight/
 --- END skills/structural/flyweight.md ---
 
 --- BEGIN skills/structural/proxy.md ---
@@ -3205,48 +5916,318 @@ See [proxy/main.go](proxy/main.go) or [view in the Playground](https://play.gola
 
 # Condition Variable
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Synchronization>/<ConditionVariable>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A condition variable allows goroutines to block efficiently until a predicate on shared state becomes true, without spinning. The goroutine atomically releases the mutex and suspends; when another goroutine signals the condition, the waiter reacquires the mutex and re-checks the predicate. This three-step dance (lock → check predicate → wait/proceed) is the foundation of all wait/notify synchronisation.
+
+## Context
+
+Go's `sync.Cond` implements the Mesa-style condition variable (the same semantics as `pthread_cond_t`). It is lower-level than channels but more efficient when many goroutines share a single predicate on a large piece of state — because a channel-based solution would need a goroutine per waiter or a broadcast channel that carries no payload.
+
+The canonical use case is a **bounded queue** (producer blocks when full, consumer blocks when empty) or a **fixed-size resource pool** (goroutine blocks until a resource is available). In both cases, state is a shared data structure — not a simple token — so `sync.Cond` is the right fit.
+
+Modern Go often prefers channels for wait/notify. Use `sync.Cond` when:
+- You need `Broadcast` (wake all waiters) with shared complex state, or
+- `Signal` (wake exactly one waiter) and you want O(1) rather than per-waiter channels, or
+- You are wrapping a large existing struct and do not want to change its storage shape.
+
+## Implementation in Go
+
+```go
+type BoundedQueue struct {
+    mu    sync.Mutex
+    cond  *sync.Cond
+    buf   []int
+    cap   int
+}
+
+func NewBoundedQueue(cap int) *BoundedQueue {
+    q := &BoundedQueue{cap: cap}
+    q.cond = sync.NewCond(&q.mu)
+    return q
+}
+
+func (q *BoundedQueue) Put(v int) {
+    q.mu.Lock()
+    defer q.mu.Unlock()
+    for len(q.buf) == q.cap { // ALWAYS loop — Mesa semantics
+        q.cond.Wait()         // releases mu, suspends, reacquires mu on wake
+    }
+    q.buf = append(q.buf, v)
+    q.cond.Signal() // wake one waiter (a consumer)
+}
+
+func (q *BoundedQueue) Get() int {
+    q.mu.Lock()
+    defer q.mu.Unlock()
+    for len(q.buf) == 0 { // ALWAYS loop
+        q.cond.Wait()
+    }
+    v := q.buf[0]
+    q.buf = q.buf[1:]
+    q.cond.Signal() // wake one waiter (a producer)
+    return v
+}
+```
+
+## When to use
+
+- **Bounded buffer / pool**: producers block when full, consumers block when empty — one `sync.Cond` shared by both sides with `Signal`.
+- **Wake-all on state change**: e.g., all workers waiting for "leader elected" — use `Broadcast`.
+- **Replacing a per-goroutine channel for scalability**: N goroutines waiting on one condition is O(1) memory vs O(N) channels.
+
+## When NOT to use
+
+- When the predicate reduces to a simple on/off signal — a closed channel (`close(ch)`) is cleaner and context-cancellable.
+- When there is exactly one waiter — a plain channel send/receive is simpler.
+- When the predicate depends on data flowing through the signal — embed the data in the channel message.
+- For timeouts/context: `sync.Cond.Wait` is not interruptible. Implement a timed-wait with a helper goroutine and `Broadcast`, or redesign with a channel.
+
+## Gotchas
+
+- **If block instead of for loop**: Mesa semantics guarantee the waiter holds the lock when `Wait` returns, but do NOT guarantee the predicate is still true. Always use `for pred { cond.Wait() }`.
+- **Signal outside the lock**: calling `Signal` or `Broadcast` without holding the mutex is technically allowed but creates a race where the signal fires before the waiter enters `Wait`. Lock before signalling when in doubt.
+- **`sync.Cond` is not copyable**: embedding `sync.Cond` in a struct and then copying the struct loses the internal state. Always store as a pointer.
+- **Deadlock on panic**: if a goroutine panics inside the critical section it holds the mutex forever. Use `defer mu.Unlock()`.
+- **No context support**: `Wait` blocks indefinitely. For cancellable waits, run a goroutine that sleeps and then calls `Broadcast` after the deadline.
+
+## See also
+
+- skills/synchronization/mutex.md
+- skills/synchronization/monitor.md
+- skills/concurrency/broadcast.md
+- examples/synchronization/condition-variable/
 --- END skills/synchronization/condition-variable.md ---
 
 --- BEGIN skills/synchronization/monitor.md ---
 
 # Monitor
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Synchronization>/<Monitor>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A monitor bundles shared state with the mutex that protects it into one type, then exposes only synchronised public methods. Callers never touch the lock — they call methods and the monitor guarantees thread safety internally. This is the object-oriented formalisation of "lock discipline": because the mutex is unexported and the methods control all access, it is impossible for a caller to forget to lock or to accidentally bypass synchronisation.
+
+## Context
+
+Hoare (1974) defined a monitor as a programming construct in which data and their synchronisation are encapsulated together. In Go, this maps naturally to a struct with unexported fields (data + mutex) and exported methods (operations). Every Go type with a `sync.Mutex` or `sync.RWMutex` field and consistent lock discipline is a monitor, whether the author uses that name or not.
+
+The monitor is the idiomatic Go answer to the question "how do I share state safely?" — more so than raw locks scattered across the codebase, because the type enforces the discipline at compile time (callers cannot see the mutex). A `sync.Map` is a standard-library monitor. A DB connection pool is a monitor. An HTTP server's connection table is a monitor.
+
+## Implementation in Go
+
+```go
+// Pool is a monitor: private state + private mutex + public methods.
+type Pool struct {
+    mu       sync.Mutex
+    cond     *sync.Cond
+    items    []Item
+    maxItems int
+}
+
+func NewPool(max int) *Pool {
+    p := &Pool{maxItems: max}
+    p.cond = sync.NewCond(&p.mu)
+    return p
+}
+
+// Acquire blocks until an item is available and returns it.
+func (p *Pool) Acquire() Item {
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    for len(p.items) == 0 {
+        p.cond.Wait()
+    }
+    item := p.items[len(p.items)-1]
+    p.items = p.items[:len(p.items)-1]
+    return item
+}
+
+// Release returns an item to the pool.
+func (p *Pool) Release(item Item) {
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    p.items = append(p.items, item)
+    p.cond.Signal()
+}
+```
+
+The caller sees `Acquire` and `Release`. The mutex and condition variable are invisible. Adding a new method that forgets to lock would be a bug visible at code review — the pattern doesn't eliminate that risk, but it localises it to one file.
+
+## When to use
+
+- Any type that wraps shared mutable state: caches, pools, registries, counters with compound operations.
+- When the synchronisation logic is non-trivial (condition variables, invariants) and must be hidden from callers.
+- When building library code that must be goroutine-safe without burdening callers with lock management.
+- Thread-safe data structures that expose high-level operations (Get-or-set, acquire-and-modify).
+
+## When NOT to use
+
+- When there is only one goroutine accessing the data — no synchronisation needed.
+- When the state transitions can be expressed cleanly as channel messages — a goroutine owning the data is simpler.
+- When the mutex grain is too coarse and contention is measured — consider sharding the monitor (N shards, each its own mutex) or lock-free structures.
+
+## Gotchas
+
+- **Method calls other methods on the same monitor**: if `MethodA` locks and then calls `MethodB` which also locks — deadlock. Pattern: unexported "inner" methods that assume the lock is held, called by exported methods that lock/unlock.
+- **Returning references to internal state**: returning a pointer to a field (e.g., `*p.items[0]`) allows the caller to mutate it without holding the lock — a hidden race. Return copies or use read-only view types.
+- **Copy of the monitor struct**: copying a struct with a `sync.Mutex` copies the lock state — `go vet` catches this. Always pass monitors by pointer.
+- **Large critical sections**: putting complex computation inside the monitor's lock degrades concurrency. Compute outside, lock only to update state.
+
+## See also
+
+- skills/synchronization/mutex.md
+- skills/synchronization/condition-variable.md
+- skills/synchronization/read-write-lock.md
+- examples/synchronization/monitor/
 --- END skills/synchronization/monitor.md ---
 
 --- BEGIN skills/synchronization/mutex.md ---
 
 # Mutex
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Synchronization>/<Mutex>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A mutex (mutual exclusion lock) ensures that only one goroutine at a time executes a critical section — a block of code that reads or writes shared state. Every other goroutine that tries to lock the mutex blocks until the current holder calls `Unlock`. In Go, `sync.Mutex` is the standard implementation; `sync.RWMutex` is its read-optimised variant.
+
+## Context
+
+Go's preferred model is "communicate by sharing" — pass data through channels instead of sharing memory directly. But shared memory is sometimes unavoidable: a cache, an in-process counter, a map that multiple goroutines must update. For these, a mutex is the right tool. Keep the critical section as short as possible: only the lines that touch shared state, not I/O or computation.
+
+`sync.RWMutex` allows any number of concurrent readers (`RLock`/`RUnlock`) but only one writer (`Lock`/`Unlock`). It wins when reads are overwhelmingly more frequent than writes. Under write-heavy workloads, `RWMutex` can be slower than `Mutex` due to the additional bookkeeping.
+
+## Implementation in Go
+
+```go
+type SafeCounter struct {
+    mu sync.Mutex
+    v  map[string]int
+}
+
+func (c *SafeCounter) Inc(key string) {
+    c.mu.Lock()
+    defer c.mu.Unlock() // ALWAYS defer to avoid forget-to-unlock bugs
+    c.v[key]++
+}
+
+func (c *SafeCounter) Value(key string) int {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    return c.v[key]
+}
+```
+
+For read-heavy counters, swap to `sync.RWMutex`:
+
+```go
+type ReadHeavyCounter struct {
+    mu sync.RWMutex
+    v  int
+}
+
+func (c *ReadHeavyCounter) Inc()      { c.mu.Lock(); defer c.mu.Unlock(); c.v++ }
+func (c *ReadHeavyCounter) Value() int { c.mu.RLock(); defer c.mu.RUnlock(); return c.v }
+```
+
+## When to use
+
+- Multiple goroutines read and/or write the same in-memory data structure (map, slice, struct fields).
+- The critical section is too complex or stateful to express as a channel message.
+- You need a simple atomic read-modify-write on a value that cannot be served by `sync/atomic`.
+- Read-heavy shared data (cache, config snapshot) — use `sync.RWMutex`.
+
+## When NOT to use
+
+- When data ownership can be transferred via channels — prefer channels.
+- For a single integer counter — `sync/atomic.Int64` is faster and lock-free.
+- For "write once, read many" configuration — `sync.Once` + immutable value, or `atomic.Value`.
+- When goroutines do not actually share data — no mutex needed if each goroutine owns its data.
+
+## Gotchas
+
+- **Copy trap**: `sync.Mutex` must not be copied after first use (the lock state is embedded). Pass structs that contain a mutex by pointer, never by value. `go vet` catches this with `copylocks`.
+- **Forget to unlock**: a panic inside the critical section leaves the mutex locked forever. Always `defer mu.Unlock()` immediately after `mu.Lock()`.
+- **Lock ordering deadlock**: if goroutine A holds mu1 and tries to acquire mu2, while goroutine B holds mu2 and tries mu1 — deadlock. Establish a consistent global lock order and document it.
+- **Holding a lock across I/O**: network calls inside a critical section can take seconds, blocking all other goroutines. Copy the data you need, unlock, then do I/O.
+- **RLock-then-upgrade**: you cannot promote an `RLock` to a `Lock` without first calling `RUnlock`. Attempting to do so deadlocks (`RLock` prevents new writers; the upgrading goroutine is itself a reader).
+- **Starvation with `RWMutex`**: a stream of continuous readers can starve writers indefinitely. Go's implementation mitigates this (writers eventually block new readers), but profile under load.
+
+## See also
+
+- skills/synchronization/read-write-lock.md
+- skills/synchronization/monitor.md
+- skills/synchronization/condition-variable.md
+- examples/synchronization/mutex/
 --- END skills/synchronization/mutex.md ---
 
 --- BEGIN skills/synchronization/read-write-lock.md ---
 
 # Read-Write Lock
 
-> **Status:** stub — body not yet written. This entry exists so the catalog and index remain complete.
->
-> **Sources to mine when filling:**
-> - `go-old-pattern/go-patterns-1/SUMMARY.md` (taxonomy)
-> - `go-old-pattern/go-patterns-2/<Synchronization>/<ReadWriteLock>/` (if present — runnable code + README)
-> - Public references: <a href="https://github.com/tmrts/go-patterns">tmrts/go-patterns</a>, <a href="https://github.com/AlexanderGrom/go-patterns">AlexanderGrom/go-patterns</a>
+## Intent
+
+A read-write lock allows any number of goroutines to read a shared resource simultaneously, but grants write access exclusively to one goroutine at a time, blocking all readers while the write is in progress. The benefit over a plain mutex is throughput: concurrent reads do not block each other, so read-heavy workloads scale with the number of goroutines rather than serialising at the lock.
+
+## Context
+
+`sync.RWMutex` is Go's standard read-write lock. It uses the same interface as `sync.Mutex` for writes (`Lock`/`Unlock`) and adds `RLock`/`RUnlock` for reads. The Go runtime implements a priority scheme that prevents writer starvation: once a writer is waiting, new readers are queued behind it.
+
+Alternatives for read-heavy data:
+- `sync/atomic.Value` — lock-free copy-on-write for whole-value snapshots. Zero reader contention.
+- `sync.Map` — built-in concurrent map optimised for stable key sets with infrequent writes.
+- Copy-on-write with `atomic.Pointer[T]` — writers copy, modify the copy, swap the pointer.
+
+`RWMutex` wins when: the guarded data is too large or structured for copy-on-write; write frequency is low (< ~10% of operations); and multiple readers must see the latest committed state without a copy.
+
+## Implementation in Go
+
+```go
+type Config struct {
+    mu   sync.RWMutex
+    data map[string]string
+}
+
+// Get reads a key — many goroutines may call concurrently.
+func (c *Config) Get(key string) (string, bool) {
+    c.mu.RLock()
+    defer c.mu.RUnlock()
+    v, ok := c.data[key]
+    return v, ok
+}
+
+// Set writes a key — exclusive; blocks all readers and other writers.
+func (c *Config) Set(key, value string) {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    c.data[key] = value
+}
+```
+
+## When to use
+
+- Read-to-write ratio is high (e.g., ≥ 10:1). Profile first — under low contention, `Mutex` is often faster due to simpler implementation.
+- Guarded state is large or structurally complex, making copy-on-write expensive.
+- In-process caches, configuration snapshots, routing tables, connection registries.
+
+## When NOT to use
+
+- Write-heavy workloads: `RWMutex` overhead from tracking concurrent readers makes it slower than `Mutex`.
+- Simple scalar values — use `sync/atomic` types (`atomic.Int64`, `atomic.Value`) which are lock-free.
+- When you need atomic swap of an entire value — `atomic.Pointer[T]` with copy-on-write is zero-reader-contention.
+- When the data fits in a stable key set with rare writes — `sync.Map` specialises for that case.
+
+## Gotchas
+
+- **Copy trap**: `sync.RWMutex` must not be copied after first use. Pass the enclosing struct by pointer; `go vet` enforces this.
+- **RLock-then-Lock upgrade is a deadlock**: you cannot promote a read lock to a write lock. Call `RUnlock` first, then re-check the predicate after acquiring `Lock` (the state may have changed).
+- **Starvation of readers by writers**: Go's implementation gives preference to waiting writers, so a flood of writers can starve readers. Under extreme write load, test your workload.
+- **Holding RLock across a slow operation**: a goroutine holding `RLock` prevents all writers. Keep `RLock` sections as short as reading the value; release before any I/O.
+- **Never call `mu.Lock()` while holding `mu.RLock()`** in the same goroutine — deadlocks because the write lock waits for all read locks to release, including the current goroutine's own.
+
+## See also
+
+- skills/synchronization/mutex.md
+- skills/synchronization/monitor.md
+- examples/synchronization/read-write-lock/
 --- END skills/synchronization/read-write-lock.md ---
 
 --- BEGIN skills/synchronization/semaphore.md ---

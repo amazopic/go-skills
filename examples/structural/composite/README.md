@@ -1,24 +1,45 @@
+# Composite — Example
 
-## Компоновщик (Composite)
+## Pattern summary
 
-Паттерн Composite относится к структурным паттернам уровня объекта.
+Composite lets clients treat leaves (`File`) and branches (`Directory`) through a single `Component` interface. The tree is printed recursively; callers never need to distinguish between the two node types.
 
-Паттерн Composite группирует схожие объекты в древовидные структуры.
+## Structure
 
-Для построения дерева будут использоваться массивы, представляющие ветви дерева.
+| Type | Role |
+|---|---|
+| `Component` | Uniform interface for both leaves and branches |
+| `Directory` | Composite — holds a `[]Component` slice; `Print` recurses into children |
+| `File` | Leaf — `Add` is a no-op; `Child` returns an empty slice |
 
-Требуется для реализации:
+## Example tree
 
-1. Базовый абстрактный класс Component который предоставляет интерфейс, как для ветвей, так и для листьев дерева;
-2. Класс Composite, реализующий интерфейс Component и являющийся ветвью дерева;
-3. Класс Leaf, реализующий интерфейс Component и являющийся листом дерева.
+```
+rootDir (Directory)
+├── usrDir (Directory)
+│   └── B (File)
+└── A (File)
+```
 
-Обратите внимание, что лист дерева является классом листовых узлов и не может иметь потомков (из листа не может вырасти ветвь или другой лист).
+`rootDir.Print("")` produces:
 
-Ветви дерева задают поведение объектов, входящих в структуру дерева, у которых есть потомки, а также сами хранит в себе компоненты дерева. Другим словами ветви могут содержать другие ветви и листья.
+```
+/root
+/root/usr
+/root/usr/B
+/root/A
+```
 
-Основным назначением паттерна, является обеспечение единого интерфейса как к составному (ветви) так и конечному (листу) объекту, что бы клиент не задумывался над тем, с каким объектом он работает. 
+## Key design choice
 
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
+`File.Add` silently does nothing (consistent with GoF). In stricter APIs, returning an error or panicking makes the misuse visible earlier — see `skills/structural/composite.md` for the narrow-interface alternative.
 
-## -~- THE END -~-
+## Run the tests
+
+```bash
+go test -race ./...
+```
+
+## Related skill
+
+`skills/structural/composite.md`

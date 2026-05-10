@@ -1,18 +1,36 @@
+# Flyweight — Example
 
-## Приспособленец (Flyweight)
+## Pattern summary
 
-Паттерн Flyweight относится к структурным паттернам уровня объекта.
+Flyweight shares intrinsic (immutable, shared) state across many objects and passes extrinsic (context-specific) state per call. A factory ensures each unique intrinsic state is allocated only once.
 
-Паттерн Flyweight используется для эффективной поддержки большого числа мелких объектов, он позволяет повторно использовать мелкие объекты в различном контексте.
+## Structure
 
-Требуется для реализации:
+| Type | Role |
+|---|---|
+| `Flyweighter` | Interface exposing `Draw(width, height int, opacity float64)` |
+| `ConcreteFlyweight` | Holds intrinsic state (`filename`); extrinsic state arrives via `Draw` |
+| `FlyweightFactory` | Caches `Flyweighter` instances by filename; creates on first request |
 
-1. Класс FlyweightFactory, являющейся модифицированным паттерном фабрики, для создания приспособленцев;
-2. Базовый абстрактный класс Flyweight, для описания общего интерфейса приспособленцев;
-3. Класс ConcreteFlyweight реализующий приспособленца, который будет замещать собой одинаковые мелкие объекты.
+## State split
 
-Суть в том, что мы можем запрашивать приспособленцев у фабрики по запросу, в свою очередь она будет отдавать те объекты, которые уже были созданы, или создавать новые. Это означает, что мы будем использовать уже созданные объекты, а не создавать ещё больше, если объекты под наши нужны уже имеются. Также стоит обратить внимание, что приспособленцы имеют внутреннее и внешние состояние. Фабрика находит приспособленцев по внутреннему состоянию, а внешнее состояние передается в его методы.
+| State | Location | Example value |
+|---|---|---|
+| Intrinsic | `ConcreteFlyweight.filename` | `"cat.jpg"` |
+| Extrinsic | `Draw` parameters | `width=100, height=100, opacity=0.95` |
 
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
+Two calls with `"cat.jpg"` return the **same** `*ConcreteFlyweight`. Only `Draw` is invoked again with different extrinsic arguments — no second allocation.
 
-## -~- THE END -~-
+## Concurrency note
+
+The factory's `pool` map is **not** goroutine-safe as written. For concurrent use, protect it with a `sync.RWMutex` (see `skills/structural/flyweight.md` for the double-checked locking snippet).
+
+## Run the tests
+
+```bash
+go test -race ./...
+```
+
+## Related skill
+
+`skills/structural/flyweight.md`

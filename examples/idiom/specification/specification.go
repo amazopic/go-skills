@@ -157,8 +157,11 @@ type InCollectionSpecification struct {
 }
 
 // Check specification
+// IsSatisfiedBy returns true when the invoice has already been sent to the
+// collection agency (IsSent == true). Compose with Not() to express "not yet
+// in collection".
 func (self *InCollectionSpecification) IsSatisfiedBy(elm Invoice) bool {
-	return !elm.IsSent
+	return elm.IsSent
 }
 
 // Constructor

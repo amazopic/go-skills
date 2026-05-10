@@ -1,23 +1,36 @@
+# Facade — Example
 
-## Фасад (Facade)
+## Pattern summary
 
-Паттерн Facade относится к структурным паттернам уровня объекта.
+Facade provides a simplified interface to a set of cooperating subsystems. Here, `Man` is the facade that orchestrates three independent subsystems (`House`, `Tree`, `Child`) behind a single `Todo()` call.
 
-Паттерн Facade предоставляет высокоуровневый унифицированный интерфейс в виде набора имен методов к набору взаимосвязанных классов или объектов некоторой подсистемы, что облегчает ее использование.
+## Structure
 
-Разбиение сложной системы на подсистемы позволяет упростить процесс разработки, а также помогает максимально снизить зависимости одной подсистемы от другой. Однако использовать такие подсистемы становиться довольно сложно. Один из способов решения этой проблемы является  паттерн Facade. Наша задача, сделать простой, единый интерфейс, через который можно было бы взаимодействовать с подсистемами.
+| Type | Role |
+|---|---|
+| `Man` | Facade — wires up subsystems in `NewMan`; exposes `Todo()` |
+| `House` | Subsystem A — `Build()` |
+| `Tree` | Subsystem B — `Grow()` |
+| `Child` | Subsystem C — `Born()` |
 
-В качестве примера можно привести интерфейс автомобиля. Современные автомобили имеют унифицированный интерфейс для водителя, под которым скрывается сложная подсистема. Благодаря применению навороченной электроники, делающей большую часть работы за водителя, тот может с лёгкостью управлять автомобилем, не задумываясь, как там все работает.
+## What the facade hides
 
-Требуется для реализации:
+- Construction and wiring of three subsystem objects.
+- The sequence in which subsystem methods must be called.
+- The fact that three separate types are involved at all.
 
-1. Класс Facade предоставляющий унифицированный доступ для классов подсистемы;
-2. Класс подсистемы SubSystemA;
-3. Класс подсистемы SubSystemB;
-4. Класс подсистемы SubSystemC.
+Callers see only `NewMan()` and `.Todo()`.
 
-Заметьте, что фасад не является единственной точкой доступа к подсистеме, он не ограничивает возможности, которые могут понадобиться "продвинутым" пользователям, желающим работать с подсистемой напрямую.
+## Note
 
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
+Subsystem types remain exported. Advanced callers can use `House`, `Tree`, and `Child` directly — the facade does not restrict access, it only provides a convenient default path.
 
-## -~- THE END -~-
+## Run the tests
+
+```bash
+go test -race ./...
+```
+
+## Related skill
+
+`skills/structural/facade.md`

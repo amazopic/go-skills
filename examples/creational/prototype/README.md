@@ -1,20 +1,25 @@
+# Prototype — Example
 
-## Прототип (Prototype)
+Demonstrates the **Prototype** pattern in Go: new objects are created by cloning an existing instance via the `Clone()` method rather than constructing from scratch.
 
-Паттерн Prototype относится к порождающим паттернам уровня объекта.
+## Structure
 
-Паттерн Prototype позволяет создавать новые объекты, путем копирования (клонирования) созданного ранее объекта-оригинала-продукта (прототипа).
+| Type | Role |
+|---|---|
+| `Prototyper` | Interface declaring `Clone() Prototyper` and `GetName() string` |
+| `ConcreteProduct` | Concrete type; `Clone()` returns an independent copy |
+| `NewConcreteProduct` | Constructor that creates the initial prototype |
 
-Паттерн описывает процесс создания объектов-клонов на основе имеющегося объекта-прототипа, другими словами, паттерн Prototype описывает способ организации процесса клонирования.
+## Run
 
-Требуется для реализации:
+```bash
+go test -race ./creational/prototype/
+```
 
-1. Базовый класс Prototype, объявляющий интерфейс клонирования. Все классы его наследующие должны реализовывать этот механизм клонирования;
-2. Класс продукта ConcretePrototypeA, который должен реализовывать этот прототип;
-3. Класс продукта ConcretePrototypeB, который должен реализовывать этот прототип.
+## Key points
 
-Обычно операция клонирования происходит через метод clone(), который описан в базовом классе и его должен реализовать каждый продукт.
+- `Clone()` returns a new `*ConcreteProduct` with the same `name` field — an independent copy; modifying the clone does not affect the original.
+- The example is intentionally minimal (a single `string` field). In production, `Clone()` must deep-copy any slice, map, or pointer fields to avoid sharing mutable state between original and clone.
+- For deeply nested structures without a hand-written `Clone()`, an `encoding/gob` or `encoding/json` round-trip achieves the same result at the cost of some performance.
 
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
-
-## -~- THE END -~-
+See [skills/creational/prototype.md](../../../skills/creational/prototype.md) for full pattern documentation, including deep-copy semantics and when to prefer a plain constructor instead.

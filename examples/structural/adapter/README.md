@@ -1,18 +1,29 @@
+# Adapter — Example
 
-## Адаптер (Adapter)
+## Pattern summary
 
-Паттерн Adapter относится к структурным паттернам уровня класса.
+Adapter converts the interface of an existing type (`Adaptee`) into the interface a client expects (`Target`), without modifying the original type.
 
-Часто в новом проекте разработчики хотят повторно использовать уже существующий код. Например, имеющиеся классы могут обладать нужной функциональностью и иметь при этом несовместимые интерфейсы. В таких случаях следует использовать паттерн Adapter.
+## Structure
 
-Смысл работы этого паттерна в том, что если у вас есть класс и его интерфейс не совместим с кодом вашей системы, то что бы разрешить этот конфликт, мы не изменяем код этого класса, а пишем для него адаптер. Другими словами Adapter адаптирует существующий код к требуемому интерфейсу (является переходником).
+| Type | Role |
+|---|---|
+| `Target` | Interface the client expects |
+| `Adaptee` | Existing type with an incompatible method (`SpecificRequest`) |
+| `Adapter` | Wraps `Adaptee` via embedding; satisfies `Target` by translating `Request()` → `SpecificRequest()` |
 
-Требуется для реализации:
+## Key design choices
 
-1. Интерфейс Target, описывающий целевой интерфейс (тот интерфейс с которым наша система хотела бы работать);
-2. Класс Adaptee, который наша система должна адаптировать под себя;
-3. Класс Adapter, адаптер реализующий целевой интерфейс.
+- `Adapter` embeds `*Adaptee` so it inherits all of `Adaptee`'s methods automatically and only overrides the one that needs translation.
+- `NewAdapter` returns `Target` (not `*Adapter`), keeping the concrete type opaque to callers.
+- No external dependencies — stdlib only.
 
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
+## Run the tests
 
-## -~- THE END -~-
+```bash
+go test -race ./...
+```
+
+## Related skill
+
+`skills/structural/adapter.md`

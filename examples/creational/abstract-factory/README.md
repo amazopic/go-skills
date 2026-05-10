@@ -1,30 +1,28 @@
+# Abstract Factory — Example
 
-## Абстрактная фабрика (Abstract Factory)
+Demonstrates the **Abstract Factory** pattern in Go: a single `AbstractFactory` interface produces a matched family of related objects (`AbstractWater` + `AbstractBottle`). Swapping the concrete factory changes every product it creates without modifying consumer code.
 
-Паттерн Abstract Factory относится к порождающим паттернам уровня объекта.
+## Structure
 
-Паттерн Abstract Factory предоставляет общий интерфейс для создания семейства взаимосвязанных объектов. Это позволяет отделить функциональность системы от внутренней реализации каждого класса, а обращение к этим классам становится возможным через абстрактные интерфейсы.
+| Type | Role |
+|---|---|
+| `AbstractFactory` | Factory interface; declares `CreateWater` and `CreateBottle` |
+| `AbstractWater` | Product interface for the liquid |
+| `AbstractBottle` | Product interface for the container |
+| `CocaColaFactory` | Concrete factory — produces `CocaColaWater` and `CocaColaBottle` |
+| `CocaColaWater` | Concrete water product |
+| `CocaColaBottle` | Concrete bottle product |
 
-В общем виде абстрактная фабрика выглядит следующим образом. Для каждого из семейств объектов, создается конкретная фабрика (наследник абстрактной), посредством которой создаются продукты этого семейства.
+## Run
 
-Пример: Есть две фабрики по производству газировки, Кока-Кола и Пепси. Эти фабрики выпускают семейство продуктов (объектов) - бутылка, крышка, этикетка, жидкость. Каждая из этих фабрик выпускает продукты, которые взаимодействуют между собой и не могут жить отдельно друг от друга. Фабрика Кока-Кола не может поставлять клиентам пустые бутылки.
+```bash
+go test -race ./creational/abstract-factory/
+```
 
-Что бы реализовать простое создание семейства объектов, должен быть интерфейс, по которому работает фабрика, так же фабрика должна выпускать продукты с определенным интерфейсом. Например, бутылки обеих компаний обладают одним интерфейсом - у них есть горлышко через которое они наполняются жидкостью, так же мы можем узнать объем бутылок. Дальше бутылки могут отличаться по форме, объему или материалу, нас это не касается, нам нужно только знать, куда наливать жидкость, а так же, сколько этой жидкости нужно.
+## Key points
 
-Требуется для реализации:
+- Consumer code (`TestAbstractFactory`) works only with the two abstract interfaces; it never references a concrete type.
+- Adding a `PepsiFactory` family requires zero changes to consumer code or product interfaces.
+- For a factory that is not plug-in swappable, prefer a concrete struct with `New*()` methods — no interface needed.
 
-1. Класс абстрактной фабрики AbstractFactory, описывающий общий интерфейс фабрики, от которой будет наследоваться каждая конкретная фабрика;
-2. Класс абстрактного продукта AbstractProduct, описывающий общий интерфейс продукта, от которого будет наследоваться каждый конкретный продукт;
-3. Класс конкретной фабрики Factory;
-4. Класс конкретного продукта ProductA.
-5. Класс конкретного продукта ProductB.
-
-Подведем итог.
-
-Абстрактная фабрика представляет собой базовый класс, описывающий интерфейс конкретных фабрик, создающих продукты. Производные от него классы конкретных фабрик, должны реализовать этот интерфейс.
-
-Также абстрактная фабрика должна описывать абстрактные продукты, которые она производит, что бы конкретные фабрики производили продукты с нужными интерфейсами.
-
-[!] В описании паттерна применяются общие понятия, такие как Класс, Объект, Абстрактный класс. Применимо к языку Go, это Пользовательский Тип, Значение этого Типа и Интерфейс. Также в языке Go за место общепринятого наследования используется агрегирование и встраивание.
-
-## -~- THE END -~-
+See [skills/creational/abstract-factory.md](../../../skills/creational/abstract-factory.md) for full pattern documentation.
