@@ -134,14 +134,14 @@ export const messages = {
   ar: { 'hero.cta.catalog':'الفهرس',     'hero.cta.methodology':'المنهجية',      'cat.title':'كل الأنماط.' },
 };
 
+// Default to English. Honor explicit ?lang=xx and prior user choice
+// (localStorage), but never auto-pick from navigator.language.
 export function getLocale() {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = params.get('lang');
   if (fromQuery && messages[fromQuery]) return fromQuery;
   const fromStorage = localStorage.getItem('go-skills.lang');
   if (fromStorage && messages[fromStorage]) return fromStorage;
-  const fromBrowser = (navigator.language || 'en').slice(0, 2);
-  if (messages[fromBrowser]) return fromBrowser;
   return defaultLocale;
 }
 
@@ -171,4 +171,10 @@ export function apply(code) {
   if (messages[code] && messages[code][titleKey]) {
     document.title = messages[code][titleKey];
   }
+  // Point GitHub README CTAs to the locale-specific README file.
+  const repo = 'https://github.com/amazopic/go-skills';
+  const readmeUrl = code === defaultLocale ? repo : `${repo}/blob/main/README.${code}.md`;
+  document.querySelectorAll('[data-github-readme]').forEach(el => {
+    el.setAttribute('href', readmeUrl);
+  });
 }
