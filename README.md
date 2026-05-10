@@ -1,0 +1,60 @@
+<p align="center"><a href="https://amazopic.github.io/go-skills/"><b>go-skills</b></a></p>
+<p align="center">Architectural patterns and methodology for Go services — packaged as Claude Code skills.</p>
+
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.ru.md">Русский</a> ·
+  <a href="README.fr.md">Français</a> ·
+  <a href="README.de.md">Deutsch</a> ·
+  <a href="README.uk.md">Українська</a> ·
+  <a href="README.sl.md">Slovenščina</a> ·
+  <a href="README.it.md">Italiano</a> ·
+  <a href="README.es.md">Español</a> ·
+  <a href="README.zh.md">中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.ar.md">العربية</a>
+</p>
+
+---
+
+## What's inside
+
+- **Methodology** — an 18-chapter playbook for building production Go services (directory layout, layered architecture, manual DI, configuration, retries, storage, transport, jobs, logging, validation, errors, testing, build, deploy). Read the [canonical full doc](skills/methodology/00-canonical-full.md) or pick a [chapter-skill](METHODOLOGY.md).
+- **Patterns** — 50+ entries across 9 categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns. See [PATTERNS.md](PATTERNS.md).
+- **Examples** — 23 runnable Go pattern packages with `_test.go`. One shared module under [`examples/`](examples/).
+- **Site** — Linear-styled GitHub Pages: <https://amazopic.github.io/go-skills/>
+- **MCP server** — placeholder for a future iteration. See [`mcp/`](mcp/).
+
+## Install as Claude Code skills
+
+```bash
+git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
+```
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "skillSources": [
+    "~/.claude/plugins/go-skills/skills"
+  ]
+}
+```
+
+Restart Claude Code.
+
+## Run examples
+
+```bash
+cd examples
+go test ./...
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Author
+
+Yevgeniy Achin · <https://github.com/amazopic>
