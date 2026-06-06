@@ -22,6 +22,7 @@ Now Claude Code will surface skills from this repo when their `description` matc
 
 ## Layout
 
+- `workflow/` — team-based development process skills (e.g. Feature Development Flow), with a runnable orchestration under `../workflows/`.
 - `methodology/` — 13 chapter-grouped skills + 1 canonical full doc.
 - `creational/`, `structural/`, `behavioral/` — GoF + Go-flavored patterns.
 - `concurrency/`, `synchronization/`, `messaging/` — Go's strengths.

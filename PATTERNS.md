@@ -1,8 +1,14 @@
 # Patterns Catalog
 
-A complete index of all 52 patterns in this knowledge base. Every entry has a senior-grade skill body and (where applicable) a runnable Go example with race-safe tests.
+A complete index of all 52 patterns in this knowledge base, plus a team-based development workflow. Every entry has a senior-grade skill body and (where applicable) a runnable Go example with race-safe tests.
 
 Status: ✓ filled — body written by a senior Go consultant, example code passes `go test -race`.
+
+## Workflow
+
+| Pattern | Status | Skill | Orchestration |
+|---|---|---|---|
+| Feature Development Flow | ✓ | [skills/workflow/feature-development.md](skills/workflow/feature-development.md) | [workflows/feature-development.mjs](workflows/feature-development.mjs) |
 
 ## Creational
 

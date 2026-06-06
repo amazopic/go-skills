@@ -284,6 +284,23 @@ After install I want to code Go with senior-level patterns and the 18-chapter se
           <h2 data-i18n="cat.title">All patterns.</h2>
           <p class="lede" data-i18n="cat.lede">Filled cards have a body and (where applicable) a runnable example. Stubs are listed for completeness — body to be filled in a future iteration.</p>
 
+          <!-- Workflow — team-based feature/task development; the flagship process skill -->
+          <div class="cat-group">
+            <h3 data-i18n="cat.workflow">Workflow</h3>
+            <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Feature Development Flow</h4>
+                <p class="desc">A trio — strong-middle Go, senior Go, DB architect — analyzes independently; the senior consolidates; the same team reverse-reviews; you approve; then they build it. Ships with a runnable orchestration script.</p>
+<pre><code>3x analyze   (parallel, independent)
+  -&gt; consolidate    (senior owns the merge)
+  -&gt; reverse-review  (same trio attacks it)
+  -&gt; FINAL PLAN -&gt; your approval gate
+  -&gt; implement       (same trio, peer-reviewed)</code></pre>
+              </article>
+            </div>
+          </div>
+
           <!-- Concurrency — Go's headline strength comes first -->
           <div class="cat-group">
             <h3 data-i18n="cat.concurrency">Concurrency</h3>

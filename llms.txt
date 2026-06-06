@@ -16,9 +16,14 @@ Languages: 13 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar)
 ## Skills (Claude Code)
 
 - [skills/README.md](skills/README.md): how to install as Claude Code skills.
+- [skills/workflow/feature-development.md](skills/workflow/feature-development.md): team-based feature/task flow — three roles analyze independently → senior consolidates → reverse review → user approval gate → same trio implements.
 - [skills/methodology/00-canonical-full.md](skills/methodology/00-canonical-full.md): full Go service architecture doc.
 - [skills/methodology/01..13-*.md](skills/methodology/): 13 chapter-grouped methodology skills.
 - [skills/<category>/*.md](skills/): per-pattern skills across creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns.
+
+## Workflows
+
+- [workflows/feature-development.mjs](workflows/feature-development.mjs): runnable orchestration of the Feature Development Flow skill. `mode: "plan"` produces a vetted plan for approval; `mode: "implement"` builds the approved plan with the same trio.
 
 ## Examples
 
