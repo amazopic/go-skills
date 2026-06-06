@@ -28,8 +28,8 @@
 ## 内容
 
 - **方法论** — 一份 18 章的实用指南，用于构建生产级 Go 服务（目录结构、分层架构、手动 DI、配置、重试、存储、transport、任务、日志、验证、错误、测试、构建、部署）。阅读[完整规范文档](skills/methodology/00-canonical-full.md)或选择单独的 [chapter-skill](METHODOLOGY.md)。
-- **模式** — 9 个类别中的 50+ 条目：创建型、结构型、行为型、并发、同步、消息传递、稳定性、性能分析、惯用写法、反模式。参见 [PATTERNS.md](PATTERNS.md)。
-- **示例** — 23 个可运行的 Go 模式包，包含 `_test.go`。在 [`examples/`](examples/) 下有一个共享模块。
+- **模式** — 10 个类别中的 52 条目：创建型、结构型、行为型、并发、同步、消息传递、稳定性、性能分析、惯用写法、反模式。参见 [PATTERNS.md](PATTERNS.md)。
+- **示例** — 52 个可运行的 Go 模式包，包含 `_test.go`。在 [`examples/`](examples/) 下有一个共享模块。
 - **网站** — Linear 风格的 GitHub Pages：<https://amazopic.github.io/go-skills/>
 - **MCP server** — 未来迭代的占位实现。参见 [`mcp/`](mcp/)。
 

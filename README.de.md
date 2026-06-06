@@ -28,8 +28,8 @@
 ## Inhalt
 
 - **Methodik** — ein 18-Kapitel-Leitfaden für den Aufbau von Go-Services in Produktion (Verzeichnisstruktur, Schichtenarchitektur, manuelles DI, Konfiguration, Wiederholungsversuche, Speicher, Transport, Jobs, Logging, Validierung, Fehler, Tests, Build, Deploy). Lesen Sie das [kanonische Volldokument](skills/methodology/00-canonical-full.md) oder wählen Sie einen [chapter-skill](METHODOLOGY.md).
-- **Muster** — 50+ Einträge in 9 Kategorien: erzeugende, strukturelle, verhaltensorientierte, Nebenläufigkeits-, Synchronisierungs-, Messaging-, Stabilitäts-, Profiling-, Idiom- und Anti-Muster. Siehe [PATTERNS.md](PATTERNS.md).
-- **Beispiele** — 23 ausführbare Go-Musterpakete mit `_test.go`. Ein gemeinsames Modul unter [`examples/`](examples/).
+- **Muster** — 52 Einträge in 10 Kategorien: erzeugende, strukturelle, verhaltensorientierte, Nebenläufigkeits-, Synchronisierungs-, Messaging-, Stabilitäts-, Profiling-, Idiom- und Anti-Muster. Siehe [PATTERNS.md](PATTERNS.md).
+- **Beispiele** — 52 ausführbare Go-Musterpakete mit `_test.go`. Ein gemeinsames Modul unter [`examples/`](examples/).
 - **Website** — GitHub Pages im Linear-Stil: <https://amazopic.github.io/go-skills/>
 - **MCP server** — Platzhalter für eine künftige Iteration. Siehe [`mcp/`](mcp/).
 

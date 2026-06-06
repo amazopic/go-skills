@@ -110,7 +110,7 @@
         "9 pattern categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns",
         "52 pattern entries, every one a senior-grade skill with race-safe Go example where applicable",
         "18-chapter service architecture methodology, split into 13 chapter-grouped Claude Code skills",
-        "41 runnable Go pattern packages with race-safe tests under examples/",
+        "52 runnable Go pattern packages with race-safe tests under examples/",
         "Static GitHub Pages site with Linear design system",
         "Full SEO stack: hreflang × 20, JSON-LD (SoftwareApplication, WebSite, FAQPage, BreadcrumbList, HowTo, TechArticle), llms.txt"
       ]
@@ -135,7 +135,7 @@
       "mainEntity": [
         { "@type": "Question", "name": "Why build this when go-patterns already exists on GitHub?", "acceptedAnswer": { "@type": "Answer", "text": "go-skills consolidates two upstream archives (theory + runnable code), adds a service-architecture methodology, and packages everything as Claude Code-compatible skills with rich frontmatter — so your editor surfaces the right pattern automatically." } },
         { "@type": "Question", "name": "Are the patterns idiomatic Go or GoF translations?", "acceptedAnswer": { "@type": "Answer", "text": "Both. Concurrency, messaging, stability, profiling, idiom — these are Go-native. Creational/structural/behavioral are GoF translated to Go with idiomatic adjustments." } },
-        { "@type": "Question", "name": "How were the patterns vetted?", "acceptedAnswer": { "@type": "Answer", "text": "Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 41 example packages pass go test -race." } },
+        { "@type": "Question", "name": "How were the patterns vetted?", "acceptedAnswer": { "@type": "Answer", "text": "Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 52 example packages pass go test -race." } },
         { "@type": "Question", "name": "Will the examples run on my machine?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — one shared go.mod at examples/. Run cd examples && go test ./... . Go 1.21+." } },
         { "@type": "Question", "name": "When will the MCP server land?", "acceptedAnswer": { "@type": "Answer", "text": "A future iteration. The mcp/ folder holds a roadmap-only README in v1; the protocol surface is sketched there." } },
         { "@type": "Question", "name": "Why Linear's design system?", "acceptedAnswer": { "@type": "Answer", "text": "Linear's near-black + single-accent aesthetic matches the content — dense, technical, no decoration." } },
@@ -259,10 +259,10 @@ After install I want to code Go with senior-level patterns and the 18-chapter se
           <span class="eyebrow" data-i18n="numbers.eyebrow">Inventory</span>
           <h2 data-i18n="numbers.title">By the numbers.</h2>
           <div class="stats">
-            <div class="stat"><div class="stat-num">9</div><div class="stat-label" data-i18n="numbers.s1">Categories</div></div>
+            <div class="stat"><div class="stat-num">10</div><div class="stat-label" data-i18n="numbers.s1">Categories</div></div>
             <div class="stat"><div class="stat-num">52</div><div class="stat-label" data-i18n="numbers.s2">Patterns</div></div>
             <div class="stat"><div class="stat-num">18</div><div class="stat-label" data-i18n="numbers.s3">Methodology chapters</div></div>
-            <div class="stat"><div class="stat-num">41</div><div class="stat-label" data-i18n="numbers.s4">Runnable examples</div></div>
+            <div class="stat"><div class="stat-num">52</div><div class="stat-label" data-i18n="numbers.s4">Runnable examples</div></div>
             <div class="stat"><div class="stat-num">19</div><div class="stat-label" data-i18n="numbers.s5">Languages</div></div>
           </div>
         </div>
@@ -882,7 +882,7 @@ func (b *Breaker) Call(fn func() error) error {
             <dd data-i18n="faq.a2">Both. Concurrency, messaging, stability, profiling, idiom — these are Go-native. Creational/structural/behavioral are GoF translated to Go with idiomatic adjustments (e.g., functional options replacing Builder where it makes sense).</dd>
 
             <dt data-i18n="faq.q3">How were the patterns vetted?</dt>
-            <dd data-i18n="faq.a3">Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 41 example packages pass <code>go test -race</code>; no upstream bugs left behind.</dd>
+            <dd data-i18n="faq.a3">Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 52 example packages pass <code>go test -race</code>; no upstream bugs left behind.</dd>
 
             <dt data-i18n="faq.q4">Will the examples run on my machine?</dt>
             <dd data-i18n="faq.a4">Yes — one shared <code>go.mod</code> at <code>examples/</code>. Run <code>cd examples &amp;&amp; go test ./...</code>. Go 1.21+.</dd>

@@ -18,17 +18,17 @@ Time measurements can be performed by utilizing `time` package and `defer` state
 ## Implementation
 
 ```go
-package profile
+package timing
 
 import (
-    "time"
     "log"
+    "time"
 )
 
-func Duration(invocation time.Time, name string) {
-    elapsed := time.Since(invocation)
-
-    log.Printf("%s lasted %s", name, elapsed)
+// Track logs the time elapsed since start under name. Call it deferred so that
+// start (the argument) is evaluated at function entry.
+func Track(start time.Time, name string) {
+    log.Printf("%s took %s", name, time.Since(start))
 }
 ```
 
@@ -36,9 +36,9 @@ func Duration(invocation time.Time, name string) {
 
 ```go
 func BigIntFactorial(x big.Int) *big.Int {
-    // Arguments to a defer statement is immediately evaluated and stored.
-    // The deferred function receives the pre-evaluated values when its invoked.
-    defer profile.Duration(time.Now(), "IntFactorial")
+    // Arguments to a defer statement are evaluated immediately and stored.
+    // The deferred function receives the pre-evaluated values when it is invoked.
+    defer timing.Track(time.Now(), "BigIntFactorial")
 
     y := big.NewInt(1)
     for one := big.NewInt(1); x.Sign() > 0; x.Sub(x, one) {
@@ -48,3 +48,23 @@ func BigIntFactorial(x big.Int) *big.Int {
     return x.Set(y)
 }
 ```
+
+## Aggregating & testing
+
+The bare `Track` helper logs wall-clock elapsed time, which is fine for a quick
+look but impossible to assert on in a test. For aggregating per-call latencies —
+and for deterministic tests — use a `Recorder` driven by an injectable `Clock`:
+
+```go
+rec := timing.NewRecorder(nil) // nil -> SystemClock
+
+func handle() {
+    defer rec.Start("handle")() // records elapsed under "handle"
+    // ...
+}
+
+stats, _ := rec.Stats("handle") // Count, Sum, Min, Max, Mean
+```
+
+Injecting a fake `Clock` in tests yields exact, non-flaky durations with no
+`time.Sleep`. See `examples/profiling/timing/` for the full, race-tested code.

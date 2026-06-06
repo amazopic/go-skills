@@ -28,8 +28,8 @@
 ## Bên trong có gì
 
 - **Phương pháp luận** — một cẩm nang 18 chương để xây dựng các dịch vụ Go cho production (bố cục thư mục, kiến trúc phân tầng, DI thủ công, cấu hình, thử lại, lưu trữ, vận chuyển, tác vụ nền, ghi log, kiểm tra hợp lệ, xử lý lỗi, kiểm thử, build, triển khai). Đọc [tài liệu đầy đủ chính thống](skills/methodology/00-canonical-full.md) hoặc chọn một [chương-skill](METHODOLOGY.md).
-- **Mẫu thiết kế** — hơn 50 mục trải khắp 9 nhóm: khởi tạo, cấu trúc, hành vi, đồng thời, đồng bộ hóa, truyền tin, ổn định, profiling, thành ngữ, phản mẫu. Xem [PATTERNS.md](PATTERNS.md).
-- **Ví dụ** — 23 package mẫu thiết kế Go chạy được kèm `_test.go`. Chung một module dưới [`examples/`](examples/).
+- **Mẫu thiết kế** — hơn 52 mục trải khắp 10 nhóm: khởi tạo, cấu trúc, hành vi, đồng thời, đồng bộ hóa, truyền tin, ổn định, profiling, thành ngữ, phản mẫu. Xem [PATTERNS.md](PATTERNS.md).
+- **Ví dụ** — 52 package mẫu thiết kế Go chạy được kèm `_test.go`. Chung một module dưới [`examples/`](examples/).
 - **Trang web** — GitHub Pages theo phong cách Linear: <https://amazopic.github.io/go-skills/>
 - **Máy chủ MCP** — chỗ giữ chỗ cho một bản lặp tương lai. Xem [`mcp/`](mcp/).
 

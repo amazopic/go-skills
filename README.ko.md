@@ -28,8 +28,8 @@
 ## 내용
 
 - **방법론** — 프로덕션 Go 서비스 구축을 위한 18장 실용 가이드 (디렉터리 구조, 레이어드 아키텍처, 수동 DI, 설정, 재시도, 스토리지, transport, 작업, 로깅, 유효성 검사, 오류, 테스트, 빌드, 배포). [전체 표준 문서](skills/methodology/00-canonical-full.md)를 읽거나 개별 [chapter-skill](METHODOLOGY.md)을 선택하세요.
-- **패턴** — 9개 카테고리에 걸친 50개 이상의 항목: 생성형, 구조형, 행동형, 동시성, 동기화, 메시징, 안정성, 프로파일링, 관용구, 안티패턴. [PATTERNS.md](PATTERNS.md) 참조.
-- **예제** — `_test.go`가 포함된 23개의 실행 가능한 Go 패턴 패키지. [`examples/`](examples/) 아래에 공유 모듈 하나.
+- **패턴** — 10개 카테고리에 걸친 52개 이상의 항목: 생성형, 구조형, 행동형, 동시성, 동기화, 메시징, 안정성, 프로파일링, 관용구, 안티패턴. [PATTERNS.md](PATTERNS.md) 참조.
+- **예제** — `_test.go`가 포함된 52개의 실행 가능한 Go 패턴 패키지. [`examples/`](examples/) 아래에 공유 모듈 하나.
 - **사이트** — Linear 스타일의 GitHub Pages: <https://amazopic.github.io/go-skills/>
 - **MCP server** — 미래 이터레이션을 위한 플레이스홀더. [`mcp/`](mcp/) 참조.
 

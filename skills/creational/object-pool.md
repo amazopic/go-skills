@@ -15,38 +15,100 @@ instances according to the demand expectation.
 
 ## Implementation
 
+A production-grade pool is generic, bounded, and context-aware. A buffered
+channel doubles as both the free list and the semaphore that caps live objects;
+a factory builds them lazily up to the cap. See
+`examples/creational/object-pool/` for the full, race-tested version.
+
 ```go
-package pool
+package objectpool
 
-type Pool chan *Object
+import (
+	"context"
+	"errors"
+	"fmt"
+	"sync"
+)
 
-func New(total int) *Pool {
-	p := make(Pool, total)
+var ErrPoolClosed = errors.New("objectpool: pool is closed")
 
-	for i := 0; i < total; i++ {
-		p <- new(Object)
+type Pool[T any] struct {
+	free    chan T
+	factory func(context.Context) (T, error)
+
+	mu      sync.Mutex
+	closed  bool
+	created int
+	size    int
+}
+
+func New[T any](size int, factory func(context.Context) (T, error)) (*Pool[T], error) {
+	if size < 1 {
+		return nil, errors.New("objectpool: size must be >= 1")
+	}
+	if factory == nil {
+		return nil, errors.New("objectpool: factory must not be nil")
+	}
+	return &Pool[T]{free: make(chan T, size), factory: factory, size: size}, nil
+}
+
+// Get returns a pooled object, creating one lazily if below the cap, or
+// blocking until a Put frees one. It honours context cancellation.
+func (p *Pool[T]) Get(ctx context.Context) (T, error) {
+	var zero T
+	select {
+	case obj, ok := <-p.free:
+		if !ok {
+			return zero, ErrPoolClosed
+		}
+		return obj, nil
+	default:
 	}
 
-	return &p
+	p.mu.Lock()
+	if p.closed {
+		p.mu.Unlock()
+		return zero, ErrPoolClosed
+	}
+	if p.created < p.size {
+		p.created++
+		p.mu.Unlock()
+		obj, err := p.factory(ctx)
+		if err != nil {
+			p.mu.Lock()
+			p.created-- // release the reserved slot so capacity does not leak
+			p.mu.Unlock()
+			return zero, fmt.Errorf("objectpool: factory failed: %w", err)
+		}
+		return obj, nil
+	}
+	p.mu.Unlock()
+
+	select {
+	case obj, ok := <-p.free:
+		if !ok {
+			return zero, ErrPoolClosed
+		}
+		return obj, nil
+	case <-ctx.Done():
+		return zero, fmt.Errorf("objectpool: get cancelled: %w", ctx.Err())
+	}
 }
 ```
 
 ## Usage
 
-Given below is a simple lifecycle example on an object pool.
-
 ```go
-p := pool.New(2)
+p, err := objectpool.New(2, func(ctx context.Context) (*Conn, error) {
+	return dial(ctx)
+})
+if err != nil { /* ... */ }
 
-select {
-case obj := <-p:
-	obj.Do( /*...*/ )
+obj, err := p.Get(ctx) // immediate, lazily-created, or blocks until one frees up
+if err != nil { /* handle ErrPoolClosed or ctx cancellation */ }
+defer p.Put(obj)       // return for reuse
 
-	p <- obj
-default:
-	// No more objects left — retry later or fail
-	return
-}
+obj.Do( /* ... */ )
 ```
 
 ## Rules of Thumb

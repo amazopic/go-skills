@@ -28,8 +28,8 @@
 ## Apa isinya
 
 - **Metodologi** — panduan 18 bab untuk membangun layanan Go di produksi (tata letak direktori, arsitektur berlapis, DI manual, konfigurasi, retry, penyimpanan, transport, job, logging, validasi, error, pengujian, build, deploy). Baca [dokumen lengkap kanonik](skills/methodology/00-canonical-full.md) atau pilih sebuah [bab-skill](METHODOLOGY.md).
-- **Pola** — 50+ entri di 9 kategori: kreasional, struktural, perilaku, konkurensi, sinkronisasi, pesan, stabilitas, profiling, idiom, anti-pola. Lihat [PATTERNS.md](PATTERNS.md).
-- **Contoh** — 23 paket pola Go yang dapat dijalankan dengan `_test.go`. Satu modul bersama di bawah [`examples/`](examples/).
+- **Pola** — 52 entri di 10 kategori: kreasional, struktural, perilaku, konkurensi, sinkronisasi, pesan, stabilitas, profiling, idiom, anti-pola. Lihat [PATTERNS.md](PATTERNS.md).
+- **Contoh** — 52 paket pola Go yang dapat dijalankan dengan `_test.go`. Satu modul bersama di bawah [`examples/`](examples/).
 - **Situs** — GitHub Pages bergaya Linear: <https://amazopic.github.io/go-skills/>
 - **Server MCP** — placeholder untuk iterasi mendatang. Lihat [`mcp/`](mcp/).
 

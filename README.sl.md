@@ -28,8 +28,8 @@
 ## Vsebina
 
 - **Metodologija** — priročnik v 18 poglavjih za gradnjo production Go storitev (struktura imenikov, slojevita arhitektura, ročni DI, konfiguracija, ponovni poskusi, shranjevanje, transport, opravila, beleženje, validacija, napake, testiranje, gradnja, namestitev). Preberite [kanonični celoten dokument](skills/methodology/00-canonical-full.md) ali izberite posamezen [chapter-skill](METHODOLOGY.md).
-- **Vzorci** — več kot 50 vnosov v 9 kategorijah: ustvarjalni, strukturni, vedenjski, vzporednost, sinhronizacija, sporočanje, stabilnost, profiliranje, idiomi, anti-vzorci. Glejte [PATTERNS.md](PATTERNS.md).
-- **Primeri** — 23 izvršljivih paketov Go vzorcev z `_test.go`. En skupni modul v [`examples/`](examples/).
+- **Vzorci** — več kot 52 vnosov v 10 kategorijah: ustvarjalni, strukturni, vedenjski, vzporednost, sinhronizacija, sporočanje, stabilnost, profiliranje, idiomi, anti-vzorci. Glejte [PATTERNS.md](PATTERNS.md).
+- **Primeri** — 52 izvršljivih paketov Go vzorcev z `_test.go`. En skupni modul v [`examples/`](examples/).
 - **Spletna stran** — GitHub Pages v slogu Linear: <https://amazopic.github.io/go-skills/>
 - **MCP server** — ogrodišče za prihodnjo iteracijo. Glejte [`mcp/`](mcp/).
 

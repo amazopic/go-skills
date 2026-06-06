@@ -1205,11 +1205,98 @@ The type-switch form is not exhaustively checked at compile time (the `default` 
 
 # Bounded Parallelism Pattern
 
-[Bounded parallelism](https://blog.golang.org/pipelines#TOC_9.) is similar to [parallelism](parallelism.md), but allows limits to be placed on allocation.
+[Bounded parallelism](https://blog.golang.org/pipelines#TOC_9.) is similar to [parallelism](parallelism.md), but caps how many goroutines run at once. The naive "one goroutine per item" approach scales goroutine count with the input and can exhaust file descriptors, sockets, or memory on large inputs. Bounded parallelism launches exactly K workers that compete to pull indexed jobs from a shared channel, so at most K invocations run concurrently regardless of input size.
+
+# Idiomatic Go
+
+Launch K workers over a shared `jobs` channel of indices; each worker writes its result into a pre-sized output slice at its own index (disjoint indices ⇒ no data race), so output order matches input and no result channel or sort is needed. Be context-first, fail-fast on the first error (wrapped with `%w`), and join every goroutine before returning so nothing leaks.
+
+```go
+// Map applies fn to every element of in using at most workers goroutines,
+// returning results in input order. The first fn error cancels the rest.
+func Map[T, R any](ctx context.Context, workers int, in []T, fn func(context.Context, T) (R, error)) ([]R, error) {
+	if workers < 1 {
+		return nil, errors.New("workers must be >= 1")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if len(in) == 0 {
+		return []R{}, nil
+	}
+	if workers > len(in) {
+		workers = len(in) // more workers than items is wasteful
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	out := make([]R, len(in))
+	jobs := make(chan int)
+
+	var errOnce sync.Once
+	var firstErr error
+	fail := func(err error) { errOnce.Do(func() { firstErr = err; cancel() }) }
+
+	// Dispatcher: feed indices, then close so workers' range loops end.
+	var dispatchWg sync.WaitGroup
+	dispatchWg.Add(1)
+	go func() {
+		defer dispatchWg.Done()
+		defer close(jobs)
+		for i := range in {
+			select {
+			case jobs <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// K workers: pull indices, run fn, write results in place.
+	var workerWg sync.WaitGroup
+	workerWg.Add(workers)
+	for range workers {
+		go func() {
+			defer workerWg.Done()
+			for i := range jobs {
+				if ctx.Err() != nil {
+					return
+				}
+				r, err := fn(ctx, in[i])
+				if err != nil {
+					fail(fmt.Errorf("item %d: %w", i, err))
+					return
+				}
+				out[i] = r
+			}
+		}()
+	}
+
+	workerWg.Wait()
+	dispatchWg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	if err := ctx.Err(); err != nil { // parent cancelled mid-flight
+		return nil, err
+	}
+	return out, nil
+}
+```
+
+## Gotchas
+
+- Don't spawn one goroutine per item — that's [parallelism](parallelism.md), not *bounded* parallelism. The whole point is the fixed worker count.
+- Workers writing `out[i]` at disjoint indices is race-free; sharing a map or appending to one slice is not — guard those with a mutex or a result channel.
+- Always `close(jobs)` from a single owner (the dispatcher) so worker `range` loops terminate; closing from a worker risks a double close.
+- Join both the dispatcher and the workers (`WaitGroup`) before returning, or a cancelled dispatch leaks a goroutine blocked on `jobs <- i`.
+- Cap `workers` at `len(in)`; otherwise extra workers spin up only to exit immediately.
 
 # Implementation and Example
 
-An example showing implementation and usage can be found in [bounded_parallelism.go](bounded_parallelism.go).
+A runnable, race-tested version (with `ForEach` and a `Map` variant) is in [examples/concurrency/bounded-parallelism/](../../examples/concurrency/bounded-parallelism/).
 --- END skills/concurrency/bounded-parallelism.md ---
 
 --- BEGIN skills/concurrency/broadcast.md ---
@@ -1415,36 +1502,46 @@ The send/receive pattern ensures that exactly one goroutine is running at any ti
 
 [Generators](https://en.wikipedia.org/wiki/Generator_(computer_programming)) yields a sequence of values one at a time.
 
-## Implementation 
+## Implementation
+
+Return a **receive-only** `<-chan T` so callers can only range over the stream —
+they can never send or close it. Make the producer **context-aware**: a consumer
+that abandons the stream early must be able to cancel, or the producer blocks
+forever on its send and leaks. `Count` below emits the half-open range
+`[start, end)`.
 
 ```go
-func Count(start int, end int) chan int {
+// Count emits start, start+1, ..., end-1 on the returned stream, then closes it.
+// The producer goroutine exits as soon as ctx is cancelled, even mid-range.
+func Count(ctx context.Context, start, end int) <-chan int {
     ch := make(chan int)
 
-    go func(ch chan int) {
-        for i := start; i <= end ; i++ {
-            // Blocks on the operation
-            ch <- i
+    go func() {
+        defer close(ch) // exactly once, so `range` always terminates
+        for i := start; i < end; i++ {
+            select {
+            case ch <- i: // blocks until the consumer receives
+            case <-ctx.Done(): // consumer gave up — stop and release the goroutine
+                return
+            }
         }
+    }()
 
-		close(ch)
-	}(ch)
-
-	return ch
+    return ch
 }
 ```
 
 ## Usage
 
 ```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel() // if we stop ranging early, this lets the producer exit
+
 fmt.Println("No bottles of beer on the wall")
 
-for i := range Count(1, 99) {
+for i := range Count(ctx, 1, 100) {
     fmt.Println("Pass it around, put one up,", i, "bottles of beer on the wall")
-    // Pass it around, put one up, 1 bottles of beer on the wall
-    // Pass it around, put one up, 2 bottles of beer on the wall
-    // ...
-    // Pass it around, put one up, 99 bottles of beer on the wall
+    // ... 1 through 99 ...
 }
 
 fmt.Println(100, "bottles of beer on the wall")
@@ -1551,7 +1648,92 @@ The `close(ch)` broadcast is idiomatic Go: closing a channel unblocks all receiv
 
 # Implementation and Example
 
-An example showing implementation and usage can be found in [parallelism.go](parallelism.go).
+The idiomatic Go shape is a **bounded parallel map**: fan a slice of inputs
+across at most `workers` goroutines, run a per-item function on each, and
+gather results back in input order. Each worker writes a distinct result index,
+so no lock is needed. The shared context is cancelled on the first error so the
+remaining workers stop pulling new work — no goroutine leaks.
+
+```go
+// Map applies fn to every element of in concurrently, using at most workers
+// goroutines, and returns the results in the same order as in. The first
+// non-nil error cancels the shared context and is returned (wrapped with %w).
+func Map[T, R any](ctx context.Context, workers int, in []T, fn func(context.Context, T) (R, error)) ([]R, error) {
+	if workers < 1 {
+		return nil, ErrNoWorkers
+	}
+	if len(in) == 0 {
+		return []R{}, nil
+	}
+	if workers > len(in) {
+		workers = len(in)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	results := make([]R, len(in))
+	type job struct {
+		idx int
+		val T
+	}
+	jobs := make(chan job)
+
+	var (
+		errOnce  sync.Once
+		firstErr error
+	)
+	fail := func(err error) {
+		errOnce.Do(func() {
+			firstErr = err
+			cancel() // stop dispatch and unblock the other workers
+		})
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for range workers {
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				if err := ctx.Err(); err != nil {
+					return
+				}
+				r, err := fn(ctx, j.val)
+				if err != nil {
+					fail(fmt.Errorf("parallelism: item %d: %w", j.idx, err))
+					return
+				}
+				results[j.idx] = r // distinct index per worker: race-free
+			}
+		}()
+	}
+
+	// Dispatch; stop early if the context is cancelled.
+	go func() {
+		defer close(jobs)
+		for i, v := range in {
+			select {
+			case jobs <- job{idx: i, val: v}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("parallelism: cancelled: %w", err)
+	}
+	return results, nil
+}
+```
+
+A complete, runnable example (with `MapCPU`, sentinel errors, and race-safe
+tests) can be found in [parallelism.go](parallelism.go).
 --- END skills/concurrency/parallelism.md ---
 
 --- BEGIN skills/concurrency/producer-consumer.md ---
@@ -1976,38 +2158,100 @@ instances according to the demand expectation.
 
 ## Implementation
 
+A production-grade pool is generic, bounded, and context-aware. A buffered
+channel doubles as both the free list and the semaphore that caps live objects;
+a factory builds them lazily up to the cap. See
+`examples/creational/object-pool/` for the full, race-tested version.
+
 ```go
-package pool
+package objectpool
 
-type Pool chan *Object
+import (
+	"context"
+	"errors"
+	"fmt"
+	"sync"
+)
 
-func New(total int) *Pool {
-	p := make(Pool, total)
+var ErrPoolClosed = errors.New("objectpool: pool is closed")
 
-	for i := 0; i < total; i++ {
-		p <- new(Object)
+type Pool[T any] struct {
+	free    chan T
+	factory func(context.Context) (T, error)
+
+	mu      sync.Mutex
+	closed  bool
+	created int
+	size    int
+}
+
+func New[T any](size int, factory func(context.Context) (T, error)) (*Pool[T], error) {
+	if size < 1 {
+		return nil, errors.New("objectpool: size must be >= 1")
+	}
+	if factory == nil {
+		return nil, errors.New("objectpool: factory must not be nil")
+	}
+	return &Pool[T]{free: make(chan T, size), factory: factory, size: size}, nil
+}
+
+// Get returns a pooled object, creating one lazily if below the cap, or
+// blocking until a Put frees one. It honours context cancellation.
+func (p *Pool[T]) Get(ctx context.Context) (T, error) {
+	var zero T
+	select {
+	case obj, ok := <-p.free:
+		if !ok {
+			return zero, ErrPoolClosed
+		}
+		return obj, nil
+	default:
 	}
 
-	return &p
+	p.mu.Lock()
+	if p.closed {
+		p.mu.Unlock()
+		return zero, ErrPoolClosed
+	}
+	if p.created < p.size {
+		p.created++
+		p.mu.Unlock()
+		obj, err := p.factory(ctx)
+		if err != nil {
+			p.mu.Lock()
+			p.created-- // release the reserved slot so capacity does not leak
+			p.mu.Unlock()
+			return zero, fmt.Errorf("objectpool: factory failed: %w", err)
+		}
+		return obj, nil
+	}
+	p.mu.Unlock()
+
+	select {
+	case obj, ok := <-p.free:
+		if !ok {
+			return zero, ErrPoolClosed
+		}
+		return obj, nil
+	case <-ctx.Done():
+		return zero, fmt.Errorf("objectpool: get cancelled: %w", ctx.Err())
+	}
 }
 ```
 
 ## Usage
 
-Given below is a simple lifecycle example on an object pool.
-
 ```go
-p := pool.New(2)
+p, err := objectpool.New(2, func(ctx context.Context) (*Conn, error) {
+	return dial(ctx)
+})
+if err != nil { /* ... */ }
 
-select {
-case obj := <-p:
-	obj.Do( /*...*/ )
+obj, err := p.Get(ctx) // immediate, lazily-created, or blocks until one frees up
+if err != nil { /* handle ErrPoolClosed or ctx cancellation */ }
+defer p.Put(obj)       // return for reuse
 
-	p <- obj
-default:
-	// No more objects left — retry later or fail
-	return
-}
+obj.Do( /* ... */ )
 ```
 
 ## Rules of Thumb
@@ -2218,7 +2462,102 @@ fmt.Println("This is ", s2["this"])
 Functional options are a method of implementing clean/eloquent APIs in Go.
 Options implemented as a function set the state of that option.
 
-## Implementation
+## Idiomatic shape (validating, error-returning)
+
+Prefer an `Option` that can fail: it lets options validate their input and lets
+the constructor reject a bad value at build time instead of producing a
+half-built object. Defaults live in one place; later options override earlier
+ones; failures wrap a package sentinel with `%w`. See the runnable example in
+`examples/idiom/functional-options/`.
+
+```go
+package options
+
+import (
+	"errors"
+	"fmt"
+	"time"
+)
+
+// ErrInvalidOption is the sentinel wrapped by every validation failure.
+var ErrInvalidOption = errors.New("options: invalid option")
+
+// config is unexported; the only way to populate it is through Option funcs.
+type config struct {
+	timeout  time.Duration
+	maxConns int
+}
+
+// Option mutates a config and reports whether the value is valid.
+// Options that cannot fail return nil.
+type Option func(*config) error
+
+func WithTimeout(d time.Duration) Option {
+	return func(c *config) error {
+		if d <= 0 {
+			return fmt.Errorf("%w: timeout must be > 0, got %s", ErrInvalidOption, d)
+		}
+		c.timeout = d
+		return nil
+	}
+}
+
+func WithMaxConns(n int) Option {
+	return func(c *config) error {
+		if n < 1 {
+			return fmt.Errorf("%w: maxConns must be >= 1, got %d", ErrInvalidOption, n)
+		}
+		c.maxConns = n
+		return nil
+	}
+}
+
+type Server struct {
+	addr string
+	cfg  config
+}
+
+func New(addr string, opts ...Option) (*Server, error) {
+	if addr == "" {
+		return nil, fmt.Errorf("%w: addr must not be empty", ErrInvalidOption)
+	}
+	cfg := config{timeout: 30 * time.Second, maxConns: 100} // defaults in one place
+	for i, opt := range opts {
+		if opt == nil { // tolerate a nil option in the variadic slice
+			continue
+		}
+		if err := opt(&cfg); err != nil {
+			return nil, fmt.Errorf("options.New: applying option %d: %w", i, err)
+		}
+	}
+	return &Server{addr: addr, cfg: cfg}, nil
+}
+```
+
+```go
+s, err := options.New("localhost:8080",
+	options.WithTimeout(5*time.Second),
+	options.WithMaxConns(50),
+)
+if errors.Is(err, options.ErrInvalidOption) { /* reject config */ }
+```
+
+## Gotchas
+
+- Apply options in order over a single `config`; the last option for a field
+  wins. Build the `config` per call — never share one mutable struct across
+  constructions, or defaults leak between callers.
+- Keep `config` unexported and expose accessors, so the resolved config is
+  immutable after `New` returns.
+- A non-validating option still returns `nil` (uniform `func(*config) error`
+  signature) rather than mixing `func(*config)` and `func(*config) error`.
+- Don't write `} else { ... }` after a branch that `return`s — drop the `else`.
+
+## Implementation (non-validating variant)
+
+The original side-effecting example below uses an exported `Options` struct and
+options that cannot fail; it predates the validating shape above and is kept for
+reference.
 
 ### Options
 
@@ -2282,9 +2621,8 @@ func New(filepath string, setters ...Option) error {
 	f, err := os.OpenFile(filepath, args.Flags, args.Permissions)
 	if err != nil {
 		return err
-	} else {
-		defer f.Close()
 	}
+	defer f.Close()
 
 	if _, err := f.WriteString(args.Contents); err != nil {
 		return err
@@ -2438,42 +2776,68 @@ Fan-In Messaging Patterns
 ===================================
 Fan-In is a messaging pattern used to create a funnel for work amongst workers (clients: source, server: destination).
 
-We can model fan-in using the Go channels.
+We can model fan-in using Go channels. The idiomatic shape is generic over the
+element type and context-aware so that the consumer can abandon the merged
+stream without leaking the forwarding goroutines.
 
 ```go
-// Merge different channels in one channel
-func Merge(cs ...<-chan int) <-chan int {
+// Merge fans the input channels into a single output channel. The output is
+// closed once every input is drained, or once ctx is cancelled — whichever
+// happens first. Forwarding goroutines never leak: each one returns on ctx
+// cancellation even if the consumer has stopped reading.
+func Merge[T any](ctx context.Context, cs ...<-chan T) <-chan T {
+	out := make(chan T)
+
 	var wg sync.WaitGroup
-
-	out := make(chan int)
-
-	// Start an send goroutine for each input channel in cs. send
-	// copies values from c to out until c is closed, then calls wg.Done.
-	send := func(c <-chan int) {
-		for n := range c {
-			out <- n
-		}
-		wg.Done()
-	}
-
 	wg.Add(len(cs))
-	for _, c := range cs {
-		go send(c)
+
+	// forward copies values from c to out until c is closed or ctx is done.
+	forward := func(c <-chan T) {
+		defer wg.Done()
+		for {
+			select {
+			case v, ok := <-c:
+				if !ok {
+					return
+				}
+				select {
+				case out <- v:
+				case <-ctx.Done():
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
 	}
 
-	// Start a goroutine to close out once all the send goroutines are
-	// done.  This must start after the wg.Add call.
+	for _, c := range cs {
+		go forward(c)
+	}
+
+	// Close out once all forwarders are done. Started after wg.Add.
 	go func() {
 		wg.Wait()
 		close(out)
 	}()
+
 	return out
 }
 ```
 
-The `Merge` function converts a list of channels to a single channel by starting a goroutine for each inbound channel that copies the values to the sole outbound channel.
+`Merge` converts a list of channels into a single channel by starting a
+goroutine for each inbound channel that copies its values to the sole outbound
+channel. Once all forwarders return, a final goroutine closes `out`.
 
-Once all the output goroutines have been started, `Merge` a goroutine is started to close the main channel.
+Gotchas:
+
+- **Don't leak forwarders.** A naive `for n := range c { out <- n }` blocks
+  forever if the consumer stops reading. Select on `ctx.Done()` for both the
+  receive and the send so every forwarder can exit.
+- **Close `out` exactly once**, from a single goroutine that waits on the
+  `WaitGroup` — never from inside a forwarder.
+- **`wg.Add(len(cs))` before launching** the forwarders, so the closer
+  goroutine can't observe a zero count prematurely.
 --- END skills/messaging/fan-in.md ---
 
 --- BEGIN skills/messaging/fan-out.md ---
@@ -2482,49 +2846,67 @@ Fan-Out Messaging Pattern
 =========================
 Fan-Out is a messaging pattern used for distributing work amongst workers (producer: source, consumers: destination).
 
-We can model fan-out using the Go channels.
+We can model fan-out with Go channels: a single source channel feeding `n`
+worker goroutines that compete to receive each item. Because each value is
+received by exactly one worker, the runtime balances load for free — fast
+workers naturally pull more items than slow ones (work-stealing semantics).
 
 ```go
-// Split a channel into n channels that receive messages in a round-robin fashion.
-func Split(ch <-chan int, n int) []<-chan int {
-	cs := make([]chan int)
-	for i := 0; i < n; i++ {
-		cs = append(cs, make(chan int))
-	}
+// FanOut starts n workers, each draining the shared in channel and emitting
+// process(item) onto the returned channel. The result channel is closed once
+// every worker has finished, i.e. after in is drained (or ctx is cancelled).
+func FanOut[In, Out any](ctx context.Context, n int, in <-chan In, process func(In) Out) <-chan Out {
+	out := make(chan Out)
 
-	// Distributes the work in a round robin fashion among the stated number
-	// of channels until the main channel has been closed. In that case, close
-	// all channels and return.
-	distributeToChannels := func(ch <-chan int, cs []chan<- int) {
-		// Close every channel when the execution ends.
-		defer func(cs []chan<- int) {
-			for _, c := range cs {
-				close(c)
-			}
-		}(cs)
-
-		for {
-			for _, c := range cs {
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for range n {
+		go func() {
+			defer wg.Done()
+			for {
 				select {
-				case val, ok := <-ch:
+				case <-ctx.Done():
+					return
+				case item, ok := <-in:
 					if !ok {
+						return // source drained
+					}
+					select {
+					case out <- process(item):
+					case <-ctx.Done():
 						return
 					}
-
-					c <- val
 				}
 			}
-		}
+		}()
 	}
 
-	go distributeToChannels(ch, cs)
+	// Close out exactly once, after all workers exit — no goroutine leak.
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
 
-	return cs
+	return out
 }
 ```
 
-The `Split` function converts a single channel into a list of channels by using 
-a goroutine to copy received values to channels in the list in a round-robin fashion.
+The `FanOut` function spreads work from one source channel across `n` worker
+goroutines. Each worker ranges the shared input until it is drained or the
+context is cancelled, so there is no fixed round-robin assignment — workers
+self-balance. A single closer goroutine waits on the `WaitGroup` and closes the
+output channel, guaranteeing every send completes before the channel closes and
+that no goroutine is left blocked.
+
+Gotchas:
+
+- **Close the output exactly once.** Let a dedicated goroutine `wg.Wait()` then
+  `close(out)`; never close from inside a worker.
+- **Honor the context on both send and receive.** A worker can block sending to
+  `out` if the consumer goes away; the inner `select` on `ctx.Done()` prevents a
+  leak.
+- **The caller owns `in`.** Workers stop when `in` is closed; the producer must
+  close it. Closing the result channel does not close the source.
 --- END skills/messaging/fan-out.md ---
 
 --- BEGIN skills/messaging/futures-promises.md ---
@@ -2623,72 +3005,105 @@ To accomplish this, an intermediary, called a "message broker" or "event bus",
 receives published messages, and then routes them on to subscribers.
 
 
-There are three components **messages**, **topics**, **users**.
+The three roles are **publishers**, the **broker** (event bus), and **subscribers**.
+In Go the idiomatic shape is a generic broker that maps each topic to a set of
+per-subscriber channels. Publishing fans a copy of the message out to every
+current subscriber of the topic (broadcast, not work-sharing).
 
 ```go
-type Message struct {
-    // Contents
+// Broker is a topic-based pub/sub bus, safe for concurrent use.
+type Broker[T any] struct {
+	mu     sync.RWMutex
+	topics map[string]map[*subscription[T]]struct{}
+	closed bool
 }
 
-
-type Subscription struct {
-	ch chan<- Message
-
-	Inbox chan Message
+type subscription[T any] struct {
+	ch   chan T
+	done chan struct{} // closed once on teardown
 }
 
-func (s *Subscription) Publish(msg Message) error {
-	if _, ok := <-s.ch; !ok {
-		return errors.New("Topic has been closed")
+// Subscribe registers a subscriber and returns a receive-only stream.
+func (b *Broker[T]) Subscribe(ctx context.Context, topic string, buf int) (*Subscription[T], error) {
+	b.mu.Lock()
+	if b.closed {
+		b.mu.Unlock()
+		return nil, ErrClosed
 	}
+	sub := &subscription[T]{ch: make(chan T, buf), done: make(chan struct{})}
+	if b.topics[topic] == nil {
+		b.topics[topic] = make(map[*subscription[T]]struct{})
+	}
+	b.topics[topic][sub] = struct{}{}
+	b.mu.Unlock()
 
-	s.ch <- msg
-
-	return nil
+	s := &Subscription[T]{C: sub.ch, broker: b, topic: topic, sub: sub}
+	// Tie lifetime to ctx without leaking a goroutine and without stealing
+	// messages: wait on done (closed by teardown), never on sub.ch.
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.Unsubscribe()
+		case <-sub.done:
+		}
+	}()
+	return s, nil
 }
 ```
 
 ```go
-type Topic struct {
-	Subscribers    []Session
-	MessageHistory []Message
-}
+// Publish broadcasts msg to every current subscriber. It never blocks: a
+// subscriber whose buffer is full has its copy dropped (straggler isolation).
+func (b *Broker[T]) Publish(ctx context.Context, topic string, msg T) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	b.mu.RLock()
+	if b.closed {
+		b.mu.RUnlock()
+		return 0, ErrClosed
+	}
+	// Snapshot subscribers, then send outside the lock.
+	targets := make([]*subscription[T], 0, len(b.topics[topic]))
+	for sub := range b.topics[topic] {
+		targets = append(targets, sub)
+	}
+	b.mu.RUnlock()
 
-func (t *Topic) Subscribe(uid uint64) (Subscription, error) {
-    // Get session and create one if it's the first
-
-    // Add session to the Topic & MessageHistory
-
-    // Create a subscription
-}
-
-func (t *Topic) Unsubscribe(Subscription) error {
-	// Implementation
-}
-
-func (t *Topic) Delete() error {
-	// Implementation
-}
-```
-
-```go
-type User struct {
-    ID uint64
-    Name string
-}
-
-type Session struct {
-    User User
-    Timestamp time.Time
+	delivered := 0
+	for _, sub := range targets {
+		select {
+		case <-ctx.Done():
+			return delivered, ctx.Err()
+		case sub.ch <- msg:
+			delivered++
+		default: // full buffer: drop for this subscriber, keep the bus flowing
+		}
+	}
+	return delivered, nil
 }
 ```
+
+Gotchas
+============
+- **Do not block publishers on slow subscribers.** Give each subscriber its own
+  buffered channel and use a `default` (drop) or a deadline; never let one
+  straggler stall the whole bus.
+- **Close every subscriber channel exactly once.** Guard teardown with a
+  membership check (and `sync.Once` on the handle) so `Unsubscribe`, ctx
+  cancellation, and `Broker.Close` cannot double-close.
+- **Send outside the lock.** Snapshot the subscriber set under the lock, then do
+  channel sends without holding it, so a slow send never blocks other topics.
+- **The ctx lifetime goroutine must not receive on the message channel** — that
+  would steal messages from the real consumer. Signal teardown on a separate
+  `done` channel.
 
 Improvements
 ============
-Events can be published in a parallel fashion by utilizing stackless goroutines.
-
-Performance can be improved by dealing with straggler subscribers
-by using a buffered inbox and you stop sending events once the inbox is full.
+Events can be published in parallel by fanning out to subscribers in separate
+goroutines. For broadcast (every subscriber sees every message) keep a
+per-subscriber channel; for work-sharing (each message handled once) use the
+push-pull pattern instead.
 --- END skills/messaging/publish-subscribe.md ---
 
 --- BEGIN skills/messaging/push-pull.md ---
@@ -4649,17 +5064,17 @@ Time measurements can be performed by utilizing `time` package and `defer` state
 ## Implementation
 
 ```go
-package profile
+package timing
 
 import (
-    "time"
     "log"
+    "time"
 )
 
-func Duration(invocation time.Time, name string) {
-    elapsed := time.Since(invocation)
-
-    log.Printf("%s lasted %s", name, elapsed)
+// Track logs the time elapsed since start under name. Call it deferred so that
+// start (the argument) is evaluated at function entry.
+func Track(start time.Time, name string) {
+    log.Printf("%s took %s", name, time.Since(start))
 }
 ```
 
@@ -4667,9 +5082,9 @@ func Duration(invocation time.Time, name string) {
 
 ```go
 func BigIntFactorial(x big.Int) *big.Int {
-    // Arguments to a defer statement is immediately evaluated and stored.
-    // The deferred function receives the pre-evaluated values when its invoked.
-    defer profile.Duration(time.Now(), "IntFactorial")
+    // Arguments to a defer statement are evaluated immediately and stored.
+    // The deferred function receives the pre-evaluated values when it is invoked.
+    defer timing.Track(time.Now(), "BigIntFactorial")
 
     y := big.NewInt(1)
     for one := big.NewInt(1); x.Sign() > 0; x.Sub(x, one) {
@@ -4679,6 +5094,26 @@ func BigIntFactorial(x big.Int) *big.Int {
     return x.Set(y)
 }
 ```
+
+## Aggregating & testing
+
+The bare `Track` helper logs wall-clock elapsed time, which is fine for a quick
+look but impossible to assert on in a test. For aggregating per-call latencies —
+and for deterministic tests — use a `Recorder` driven by an injectable `Clock`:
+
+```go
+rec := timing.NewRecorder(nil) // nil -> SystemClock
+
+func handle() {
+    defer rec.Start("handle")() // records elapsed under "handle"
+    // ...
+}
+
+stats, _ := rec.Stats("handle") // Count, Sum, Min, Max, Mean
+```
+
+Injecting a fake `Clock` in tests yields exact, non-flaky durations with no
+`time.Sleep`. See `examples/profiling/timing/` for the full, race-tested code.
 --- END skills/profiling/timing.md ---
 
 --- BEGIN skills/stability/bulkhead.md ---
@@ -4843,35 +5278,45 @@ package circuit
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
+// ErrServiceUnavailable is returned when the breaker is open and fails fast.
+var ErrServiceUnavailable = errors.New("circuit: service unavailable")
+
 type Circuit func(context.Context) error
 
+// Breaker wraps c and trips after failureThreshold consecutive failures.
+// While tripped it fails fast with ErrServiceUnavailable; after an
+// exponentially growing backoff it lets a single request through to probe the
+// dependency. NewCounter returns a thread-safe Counter implementation.
 func Breaker(c Circuit, failureThreshold uint32) Circuit {
 	cnt := NewCounter()
 
-	return func(ctx context) error {
+	return func(ctx context.Context) error {
 		if cnt.ConsecutiveFailures() >= failureThreshold {
-			canRetry := func(cnt Counter) {
-				backoffLevel := Cnt.ConsecutiveFailures() - failureThreshold
+			// Bug-prone spots to watch: the parameter is context.Context (not
+			// the package "context"), the closure must declare its bool return,
+			// the constant is time.Second (singular), and don't shadow cnt.
+			canRetry := func() bool {
+				backoffLevel := cnt.ConsecutiveFailures() - failureThreshold
 
-				// Calculates when should the circuit breaker resume propagating requests
-				// to the service
-				shouldRetryAt := cnt.LastActivity().Add(time.Seconds * 2 << backoffLevel)
+				// When should the breaker resume propagating requests.
+				shouldRetryAt := cnt.LastActivity().Add(time.Second * 2 << backoffLevel)
 
 				return time.Now().After(shouldRetryAt)
 			}
 
-			if !canRetry(cnt) {
-				// Fails fast instead of propagating requests to the circuit since
-				// not enough time has passed since the last failure to retry
+			if !canRetry() {
+				// Fail fast: not enough time has passed since the last failure.
 				return ErrServiceUnavailable
 			}
 		}
 
-		// Unless the failure threshold is exceeded the wrapped service mimics the
-		// old behavior and the difference in behavior is seen after consecutive failures
+		// Unless the failure threshold is exceeded the wrapped service mimics
+		// the old behavior; the difference appears only after consecutive
+		// failures.
 		if err := c(ctx); err != nil {
 			cnt.Count(FailureState)
 			return err
@@ -4882,6 +5327,10 @@ func Breaker(c Circuit, failureThreshold uint32) Circuit {
 	}
 }
 ```
+
+A complete, generic, deterministically tested implementation (with an injectable
+clock and explicit open/half-open states) lives in the runnable example at
+`examples/stability/circuit-breaker/`.
 
 ## Related Works
 
@@ -6241,82 +6690,103 @@ A semaphore is a synchronization pattern/primitive that imposes mutual exclusion
 ```go
 package semaphore
 
-var (
-	ErrNoTickets      = errors.New("semaphore: could not aquire semaphore")
-	ErrIllegalRelease = errors.New("semaphore: can't release the semaphore without acquiring it first")
+import (
+	"context"
+	"errors"
 )
 
-// Interface contains the behavior of a semaphore that can be acquired and/or released.
-type Interface interface {
-	Acquire() error
-	Release() error
+// ErrNoTickets is returned by TryAcquire when no slot is free.
+var ErrNoTickets = errors.New("semaphore: no tickets available")
+
+// Semaphore is a counting semaphore backed by a buffered channel. The buffer
+// capacity is the number of tickets (concurrent holders) allowed. The zero
+// value is not usable; create one with New.
+type Semaphore struct {
+	tickets chan struct{}
 }
 
-type implementation struct {
-	sem     chan struct{}
-	timeout time.Duration
+// New creates a Semaphore that allows n concurrent holders. n must be > 0.
+func New(n int) *Semaphore {
+	if n <= 0 {
+		panic("semaphore: n must be > 0")
+	}
+	return &Semaphore{tickets: make(chan struct{}, n)}
 }
 
-func (s *implementation) Acquire() error {
+// Acquire blocks until a ticket is free or ctx is done. On success it returns
+// nil; the caller must call Release exactly once. On cancellation it returns
+// ctx.Err() wrapped, and no ticket is held.
+func (s *Semaphore) Acquire(ctx context.Context) error {
 	select {
-	case s.sem <- struct{}{}:
+	case s.tickets <- struct{}{}:
 		return nil
-	case <-time.After(s.timeout):
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// TryAcquire grabs a ticket without blocking. It returns ErrNoTickets if none
+// is free. On success the caller must call Release exactly once.
+func (s *Semaphore) TryAcquire() error {
+	select {
+	case s.tickets <- struct{}{}:
+		return nil
+	default:
 		return ErrNoTickets
 	}
 }
 
-func (s *implementation) Release() error {
+// Release returns one ticket. It must be called exactly once per successful
+// Acquire/TryAcquire; releasing without holding a ticket panics.
+func (s *Semaphore) Release() {
 	select {
-	case _ = <-s.sem:
-		return nil
-	case <-time.After(s.timeout):
-		return ErrIllegalRelease
-	}
-
-	return nil
-}
-
-func New(tickets int, timeout time.Duration) Interface {
-	return &implementation{
-		sem:     make(chan struct{}, tickets),
-		timeout: timeout,
+	case <-s.tickets:
+	default:
+		panic("semaphore: Release called without a held ticket")
 	}
 }
 ```
 
 ## Usage
-### Semaphore with Timeouts
+### Blocking acquire (with cancellation/deadline via context)
 
 ```go
-tickets, timeout := 1, 3*time.Second
-s := semaphore.New(tickets, timeout)
+s := semaphore.New(3) // at most 3 concurrent holders
 
-if err := s.Acquire(); err != nil {
-    panic(err)
+ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+defer cancel()
+
+if err := s.Acquire(ctx); err != nil {
+    return err // ctx cancelled or deadline exceeded; no ticket held
 }
+defer s.Release()
 
-// Do important work
-
-if err := s.Release(); err != nil {
-    panic(err)
-}
+// Do important work — guaranteed at most 3 goroutines reach here at once.
 ```
-### Semaphore without Timeouts (Non-Blocking)
+
+### Non-blocking acquire (fail fast)
 
 ```go
-tickets, timeout := 0, 0
-s := semaphore.New(tickets, timeout)
+s := semaphore.New(1)
 
-if err := s.Acquire(); err != nil {
-    if err != semaphore.ErrNoTickets {
-        panic(err)
+if err := s.TryAcquire(); err != nil {
+    if errors.Is(err, semaphore.ErrNoTickets) {
+        return // no slot free right now; skip / shed load
     }
-
-    // No tickets left, can't work :(
-    os.Exit(1)
+    return err
 }
+defer s.Release()
 ```
+
+## Gotchas
+
+- **Always pair Acquire with Release** — use `defer s.Release()` right after a
+  successful acquire so an early return or panic still returns the ticket.
+- **Never Release without a held ticket.** Doing so would over-fill the channel
+  and let more than N holders through; this implementation panics instead.
+- **Prefer `context` over timers.** A `time.After`-based timeout leaks the timer
+  until it fires and is harder to compose; `Acquire(ctx)` cancels cleanly and
+  reports `ctx.Err()`.
 --- END skills/synchronization/semaphore.md ---
 
 --- BEGIN skills/workflow/feature-development.md ---

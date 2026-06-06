@@ -1,6 +1,6 @@
 # go-skills
 
-> A Go knowledge base — architectural patterns and a service-building methodology — packaged as Claude Code skills, exposed via a static site, and (soon) an MCP server. Source: methodology + 50+ pattern skills (theory + runnable examples in some cases).
+> A Go knowledge base — architectural patterns and a service-building methodology — packaged as Claude Code skills, exposed via a static site, and (soon) an MCP server. Source: methodology + 52 pattern skills (theory + runnable examples in some cases).
 
 Author: Yevgeniy Achin <amazopic@gmail.com>
 License: MIT
@@ -9,7 +9,7 @@ Languages: 19 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar, pt-BR, tr, id, vi
 ## Documentation
 
 - [README](README.md): overview, install, link to site.
-- [PATTERNS.md](PATTERNS.md): full catalog of 50+ patterns across 9 categories.
+- [PATTERNS.md](PATTERNS.md): full catalog of 52 patterns across 10 categories.
 - [METHODOLOGY.md](METHODOLOGY.md): index of 13 chapter-skills + canonical full doc.
 - [LICENSE](LICENSE): MIT.
 
@@ -27,7 +27,7 @@ Languages: 19 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar, pt-BR, tr, id, vi
 
 ## Examples
 
-- [examples/](examples/): 41 runnable Go pattern packages with race-safe `_test.go`. One shared module: `github.com/amazopic/go-skills/examples` (Go 1.22+). Run: `cd examples && go test -race ./...`.
+- [examples/](examples/): 52 runnable Go pattern packages with race-safe `_test.go`. One shared module: `github.com/amazopic/go-skills/examples` (Go 1.22+). Run: `cd examples && go test -race ./...`.
 
 ## Site
 

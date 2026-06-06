@@ -28,8 +28,8 @@
 ## Contenu
 
 - **Méthodologie** — un guide pratique en 18 chapitres pour construire des services Go en production (organisation des répertoires, architecture en couches, DI manuel, configuration, tentatives, stockage, transport, tâches, journalisation, validation, erreurs, tests, compilation, déploiement). Lisez le [document canonique complet](skills/methodology/00-canonical-full.md) ou choisissez un [chapter-skill](METHODOLOGY.md).
-- **Patterns** — plus de 50 entrées réparties en 9 catégories : créationnels, structurels, comportementaux, concurrence, synchronisation, messagerie, stabilité, profilage, idiomes, anti-patterns. Voir [PATTERNS.md](PATTERNS.md).
-- **Exemples** — 23 packages Go de patterns exécutables avec `_test.go`. Un module partagé sous [`examples/`](examples/).
+- **Patterns** — plus de 52 entrées réparties en 10 catégories : créationnels, structurels, comportementaux, concurrence, synchronisation, messagerie, stabilité, profilage, idiomes, anti-patterns. Voir [PATTERNS.md](PATTERNS.md).
+- **Exemples** — 52 packages Go de patterns exécutables avec `_test.go`. Un module partagé sous [`examples/`](examples/).
 - **Site** — GitHub Pages au style Linear : <https://amazopic.github.io/go-skills/>
 - **MCP server** — ébauche pour une itération future. Voir [`mcp/`](mcp/).
 

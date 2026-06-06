@@ -12,39 +12,65 @@ Fan-In Messaging Patterns
 ===================================
 Fan-In is a messaging pattern used to create a funnel for work amongst workers (clients: source, server: destination).
 
-We can model fan-in using the Go channels.
+We can model fan-in using Go channels. The idiomatic shape is generic over the
+element type and context-aware so that the consumer can abandon the merged
+stream without leaking the forwarding goroutines.
 
 ```go
-// Merge different channels in one channel
-func Merge(cs ...<-chan int) <-chan int {
+// Merge fans the input channels into a single output channel. The output is
+// closed once every input is drained, or once ctx is cancelled — whichever
+// happens first. Forwarding goroutines never leak: each one returns on ctx
+// cancellation even if the consumer has stopped reading.
+func Merge[T any](ctx context.Context, cs ...<-chan T) <-chan T {
+	out := make(chan T)
+
 	var wg sync.WaitGroup
-
-	out := make(chan int)
-
-	// Start an send goroutine for each input channel in cs. send
-	// copies values from c to out until c is closed, then calls wg.Done.
-	send := func(c <-chan int) {
-		for n := range c {
-			out <- n
-		}
-		wg.Done()
-	}
-
 	wg.Add(len(cs))
-	for _, c := range cs {
-		go send(c)
+
+	// forward copies values from c to out until c is closed or ctx is done.
+	forward := func(c <-chan T) {
+		defer wg.Done()
+		for {
+			select {
+			case v, ok := <-c:
+				if !ok {
+					return
+				}
+				select {
+				case out <- v:
+				case <-ctx.Done():
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
 	}
 
-	// Start a goroutine to close out once all the send goroutines are
-	// done.  This must start after the wg.Add call.
+	for _, c := range cs {
+		go forward(c)
+	}
+
+	// Close out once all forwarders are done. Started after wg.Add.
 	go func() {
 		wg.Wait()
 		close(out)
 	}()
+
 	return out
 }
 ```
 
-The `Merge` function converts a list of channels to a single channel by starting a goroutine for each inbound channel that copies the values to the sole outbound channel.
+`Merge` converts a list of channels into a single channel by starting a
+goroutine for each inbound channel that copies its values to the sole outbound
+channel. Once all forwarders return, a final goroutine closes `out`.
 
-Once all the output goroutines have been started, `Merge` a goroutine is started to close the main channel.
+Gotchas:
+
+- **Don't leak forwarders.** A naive `for n := range c { out <- n }` blocks
+  forever if the consumer stops reading. Select on `ctx.Done()` for both the
+  receive and the send so every forwarder can exit.
+- **Close `out` exactly once**, from a single goroutine that waits on the
+  `WaitGroup` — never from inside a forwarder.
+- **`wg.Add(len(cs))` before launching** the forwarders, so the closer
+  goroutine can't observe a zero count prematurely.

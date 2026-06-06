@@ -67,35 +67,45 @@ package circuit
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
+// ErrServiceUnavailable is returned when the breaker is open and fails fast.
+var ErrServiceUnavailable = errors.New("circuit: service unavailable")
+
 type Circuit func(context.Context) error
 
+// Breaker wraps c and trips after failureThreshold consecutive failures.
+// While tripped it fails fast with ErrServiceUnavailable; after an
+// exponentially growing backoff it lets a single request through to probe the
+// dependency. NewCounter returns a thread-safe Counter implementation.
 func Breaker(c Circuit, failureThreshold uint32) Circuit {
 	cnt := NewCounter()
 
-	return func(ctx context) error {
+	return func(ctx context.Context) error {
 		if cnt.ConsecutiveFailures() >= failureThreshold {
-			canRetry := func(cnt Counter) {
-				backoffLevel := Cnt.ConsecutiveFailures() - failureThreshold
+			// Bug-prone spots to watch: the parameter is context.Context (not
+			// the package "context"), the closure must declare its bool return,
+			// the constant is time.Second (singular), and don't shadow cnt.
+			canRetry := func() bool {
+				backoffLevel := cnt.ConsecutiveFailures() - failureThreshold
 
-				// Calculates when should the circuit breaker resume propagating requests
-				// to the service
-				shouldRetryAt := cnt.LastActivity().Add(time.Seconds * 2 << backoffLevel)
+				// When should the breaker resume propagating requests.
+				shouldRetryAt := cnt.LastActivity().Add(time.Second * 2 << backoffLevel)
 
 				return time.Now().After(shouldRetryAt)
 			}
 
-			if !canRetry(cnt) {
-				// Fails fast instead of propagating requests to the circuit since
-				// not enough time has passed since the last failure to retry
+			if !canRetry() {
+				// Fail fast: not enough time has passed since the last failure.
 				return ErrServiceUnavailable
 			}
 		}
 
-		// Unless the failure threshold is exceeded the wrapped service mimics the
-		// old behavior and the difference in behavior is seen after consecutive failures
+		// Unless the failure threshold is exceeded the wrapped service mimics
+		// the old behavior; the difference appears only after consecutive
+		// failures.
 		if err := c(ctx); err != nil {
 			cnt.Count(FailureState)
 			return err
@@ -106,6 +116,10 @@ func Breaker(c Circuit, failureThreshold uint32) Circuit {
 	}
 }
 ```
+
+A complete, generic, deterministically tested implementation (with an injectable
+clock and explicit open/half-open states) lives in the runnable example at
+`examples/stability/circuit-breaker/`.
 
 ## Related Works
 

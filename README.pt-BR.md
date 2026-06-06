@@ -28,8 +28,8 @@
 ## O que tem dentro
 
 - **Metodologia** — um manual de 18 capítulos para construir serviços Go em produção (estrutura de diretórios, arquitetura em camadas, DI manual, configuração, retentativas, armazenamento, transporte, jobs, logging, validação, erros, testes, build, deploy). Leia o [documento canônico completo](skills/methodology/00-canonical-full.md) ou escolha um [capítulo-skill](METHODOLOGY.md).
-- **Padrões** — mais de 50 itens em 9 categorias: criacionais, estruturais, comportamentais, concorrência, sincronização, mensageria, estabilidade, profiling, idiomas, antipadrões. Veja [PATTERNS.md](PATTERNS.md).
-- **Exemplos** — 23 pacotes Go de padrões executáveis com `_test.go`. Um único módulo compartilhado em [`examples/`](examples/).
+- **Padrões** — mais de 52 itens em 10 categorias: criacionais, estruturais, comportamentais, concorrência, sincronização, mensageria, estabilidade, profiling, idiomas, antipadrões. Veja [PATTERNS.md](PATTERNS.md).
+- **Exemplos** — 52 pacotes Go de padrões executáveis com `_test.go`. Um único módulo compartilhado em [`examples/`](examples/).
 - **Site** — GitHub Pages com estilo Linear: <https://amazopic.github.io/go-skills/>
 - **Servidor MCP** — placeholder para uma iteração futura. Veja [`mcp/`](mcp/).
 

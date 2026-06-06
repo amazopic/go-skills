@@ -17,7 +17,7 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 | Abstract Factory | ✓ | [skills/creational/abstract-factory.md](skills/creational/abstract-factory.md) | [examples/creational/abstract-factory](examples/creational/abstract-factory) |
 | Builder | ✓ | [skills/creational/builder.md](skills/creational/builder.md) | [examples/creational/builder](examples/creational/builder) |
 | Factory Method | ✓ | [skills/creational/factory-method.md](skills/creational/factory-method.md) | [examples/creational/factory-method](examples/creational/factory-method) |
-| Object Pool | ✓ | [skills/creational/object-pool.md](skills/creational/object-pool.md) | — |
+| Object Pool | ✓ | [skills/creational/object-pool.md](skills/creational/object-pool.md) | [examples/creational/object-pool](examples/creational/object-pool) |
 | Prototype | ✓ | [skills/creational/prototype.md](skills/creational/prototype.md) | [examples/creational/prototype](examples/creational/prototype) |
 | Singleton | ✓ | [skills/creational/singleton.md](skills/creational/singleton.md) | [examples/creational/singleton](examples/creational/singleton) |
 
@@ -54,11 +54,11 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 | Pattern | Status | Skill | Example |
 |---|---|---|---|
 | N-Barrier | ✓ | [skills/concurrency/n-barrier.md](skills/concurrency/n-barrier.md) | [examples/concurrency/n-barrier](examples/concurrency/n-barrier) |
-| Bounded Parallelism | ✓ | [skills/concurrency/bounded-parallelism.md](skills/concurrency/bounded-parallelism.md) | — |
+| Bounded Parallelism | ✓ | [skills/concurrency/bounded-parallelism.md](skills/concurrency/bounded-parallelism.md) | [examples/concurrency/bounded-parallelism](examples/concurrency/bounded-parallelism) |
 | Broadcast | ✓ | [skills/concurrency/broadcast.md](skills/concurrency/broadcast.md) | [examples/concurrency/broadcast](examples/concurrency/broadcast) |
 | Coroutines | ✓ | [skills/concurrency/coroutines.md](skills/concurrency/coroutines.md) | [examples/concurrency/coroutines](examples/concurrency/coroutines) |
-| Generator | ✓ | [skills/concurrency/generator.md](skills/concurrency/generator.md) | — |
-| Parallelism | ✓ | [skills/concurrency/parallelism.md](skills/concurrency/parallelism.md) | — |
+| Generator | ✓ | [skills/concurrency/generator.md](skills/concurrency/generator.md) | [examples/concurrency/generator](examples/concurrency/generator) |
+| Parallelism | ✓ | [skills/concurrency/parallelism.md](skills/concurrency/parallelism.md) | [examples/concurrency/parallelism](examples/concurrency/parallelism) |
 | Producer Consumer | ✓ | [skills/concurrency/producer-consumer.md](skills/concurrency/producer-consumer.md) | [examples/concurrency/producer-consumer](examples/concurrency/producer-consumer) |
 | Reactor | ✓ | [skills/concurrency/reactor.md](skills/concurrency/reactor.md) | [examples/concurrency/reactor](examples/concurrency/reactor) |
 
@@ -70,16 +70,16 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 | Mutex | ✓ | [skills/synchronization/mutex.md](skills/synchronization/mutex.md) | [examples/synchronization/mutex](examples/synchronization/mutex) |
 | Monitor | ✓ | [skills/synchronization/monitor.md](skills/synchronization/monitor.md) | [examples/synchronization/monitor](examples/synchronization/monitor) |
 | Read-Write Lock | ✓ | [skills/synchronization/read-write-lock.md](skills/synchronization/read-write-lock.md) | [examples/synchronization/read-write-lock](examples/synchronization/read-write-lock) |
-| Semaphore | ✓ | [skills/synchronization/semaphore.md](skills/synchronization/semaphore.md) | — |
+| Semaphore | ✓ | [skills/synchronization/semaphore.md](skills/synchronization/semaphore.md) | [examples/synchronization/semaphore](examples/synchronization/semaphore) |
 
 ## Messaging
 
 | Pattern | Status | Skill | Example |
 |---|---|---|---|
-| Fan-In | ✓ | [skills/messaging/fan-in.md](skills/messaging/fan-in.md) | — |
-| Fan-Out | ✓ | [skills/messaging/fan-out.md](skills/messaging/fan-out.md) | — |
+| Fan-In | ✓ | [skills/messaging/fan-in.md](skills/messaging/fan-in.md) | [examples/messaging/fan-in](examples/messaging/fan-in) |
+| Fan-Out | ✓ | [skills/messaging/fan-out.md](skills/messaging/fan-out.md) | [examples/messaging/fan-out](examples/messaging/fan-out) |
 | Futures & Promises | ✓ | [skills/messaging/futures-promises.md](skills/messaging/futures-promises.md) | [examples/messaging/futures-promises](examples/messaging/futures-promises) |
-| Publish/Subscribe | ✓ | [skills/messaging/publish-subscribe.md](skills/messaging/publish-subscribe.md) | — |
+| Publish/Subscribe | ✓ | [skills/messaging/publish-subscribe.md](skills/messaging/publish-subscribe.md) | [examples/messaging/publish-subscribe](examples/messaging/publish-subscribe) |
 | Push & Pull | ✓ | [skills/messaging/push-pull.md](skills/messaging/push-pull.md) | [examples/messaging/push-pull](examples/messaging/push-pull) |
 
 ## Stability
@@ -87,7 +87,7 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 | Pattern | Status | Skill | Example |
 |---|---|---|---|
 | Bulkhead | ✓ | [skills/stability/bulkhead.md](skills/stability/bulkhead.md) | [examples/stability/bulkhead](examples/stability/bulkhead) |
-| Circuit Breaker | ✓ | [skills/stability/circuit-breaker.md](skills/stability/circuit-breaker.md) | — |
+| Circuit Breaker | ✓ | [skills/stability/circuit-breaker.md](skills/stability/circuit-breaker.md) | [examples/stability/circuit-breaker](examples/stability/circuit-breaker) |
 | Deadline | ✓ | [skills/stability/deadline.md](skills/stability/deadline.md) | [examples/stability/deadline](examples/stability/deadline) |
 | Fail-Fast | ✓ | [skills/stability/fail-fast.md](skills/stability/fail-fast.md) | [examples/stability/fail-fast](examples/stability/fail-fast) |
 | Handshaking | ✓ | [skills/stability/handshaking.md](skills/stability/handshaking.md) | [examples/stability/handshaking](examples/stability/handshaking) |
@@ -97,13 +97,13 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 
 | Pattern | Status | Skill | Example |
 |---|---|---|---|
-| Timing | ✓ | [skills/profiling/timing.md](skills/profiling/timing.md) | — |
+| Timing | ✓ | [skills/profiling/timing.md](skills/profiling/timing.md) | [examples/profiling/timing](examples/profiling/timing) |
 
 ## Idioms
 
 | Pattern | Status | Skill | Example |
 |---|---|---|---|
-| Functional Options | ✓ | [skills/idiom/functional-options.md](skills/idiom/functional-options.md) | — |
+| Functional Options | ✓ | [skills/idiom/functional-options.md](skills/idiom/functional-options.md) | [examples/idiom/functional-options](examples/idiom/functional-options) |
 | Specification | ✓ | [skills/idiom/specification.md](skills/idiom/specification.md) | [examples/idiom/specification](examples/idiom/specification) |
 
 ## Anti-Patterns
