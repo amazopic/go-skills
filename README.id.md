@@ -25,11 +25,14 @@
 
 ---
 
+> **Baru mengenal go-skills? Mulai dengan [Project Assessment](skills/workflow/project-assessment.md).** Arahkan ke proyek Go Anda yang sudah ada dan dapatkan skor kematangan beserta peta jalan yang diprioritaskan, di mana setiap item ditautkan ke pola atau bab go-skills tepat yang harus diterapkan — hanya-baca, tidak pernah mengubah kode Anda.
+
 ## Apa isinya
 
 - **Metodologi** — panduan 18 bab untuk membangun layanan Go di produksi (tata letak direktori, arsitektur berlapis, DI manual, konfigurasi, retry, penyimpanan, transport, job, logging, validasi, error, pengujian, build, deploy). Baca [dokumen lengkap kanonik](skills/methodology/00-canonical-full.md) atau pilih sebuah [bab-skill](METHODOLOGY.md).
 - **Pola** — 52 entri di 10 kategori: kreasional, struktural, perilaku, konkurensi, sinkronisasi, pesan, stabilitas, profiling, idiom, anti-pola. Lihat [PATTERNS.md](PATTERNS.md).
 - **Contoh** — 52 paket pola Go yang dapat dijalankan dengan `_test.go`. Satu modul bersama di bawah [`examples/`](examples/).
+- **Alur Kerja** — skill berbasis tim yang dapat dijalankan: [Project Assessment](skills/workflow/project-assessment.md) (menilai proyek yang sudah ada), [Feature Development](skills/workflow/feature-development.md) (membangun sebuah fitur), [Security Code Review](skills/workflow/security-review.md) (audit + perbaikan).
 - **Situs** — GitHub Pages bergaya Linear: <https://amazopic.github.io/go-skills/>
 - **Server MCP** — placeholder untuk iterasi mendatang. Lihat [`mcp/`](mcp/).
 

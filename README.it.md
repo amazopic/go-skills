@@ -25,11 +25,14 @@
 
 ---
 
+> **Sei nuovo di go-skills? Inizia da [Project Assessment](skills/workflow/project-assessment.md).** Puntalo sul tuo progetto Go esistente e ottieni un punteggio di maturità più una roadmap prioritizzata in cui ogni voce rimanda all'esatto pattern o capitolo go-skills da applicare — sola lettura, non modifica mai il tuo codice.
+
 ## Contenuto
 
 - **Metodologia** — una guida pratica in 18 capitoli per costruire servizi Go in produzione (struttura delle directory, architettura a strati, DI manuale, configurazione, retry, storage, transport, job, logging, validazione, errori, testing, build, deploy). Leggi il [documento canonico completo](skills/methodology/00-canonical-full.md) o scegli un [chapter-skill](METHODOLOGY.md).
 - **Pattern** — oltre 52 voci in 10 categorie: creazionali, strutturali, comportamentali, concorrenza, sincronizzazione, messaggistica, stabilità, profiling, idiomi, anti-pattern. Vedi [PATTERNS.md](PATTERNS.md).
 - **Esempi** — 52 pacchetti Go di pattern eseguibili con `_test.go`. Un modulo condiviso in [`examples/`](examples/).
+- **Workflows** — skill eseguibili basate su team: [Project Assessment](skills/workflow/project-assessment.md) (valuta un progetto esistente), [Feature Development](skills/workflow/feature-development.md) (costruisci una feature), [Security Code Review](skills/workflow/security-review.md) (audit + correzione).
 - **Sito** — GitHub Pages in stile Linear: <https://amazopic.github.io/go-skills/>
 - **MCP server** — segnaposto per una futura iterazione. Vedi [`mcp/`](mcp/).
 

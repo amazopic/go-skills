@@ -25,11 +25,14 @@
 
 ---
 
+> **go-skills'te yeni misiniz? [Project Assessment](skills/workflow/project-assessment.md) ile başlayın.** Onu mevcut Go projenize yönlendirin; her maddenin uygulanacak tam go-skills pattern'ine veya bölümüne bağlandığı bir olgunluk puanı ve önceliklendirilmiş bir yol haritası elde edin — yalnızca okuma yapar, kodunuzu asla değiştirmez.
+
 ## İçindekiler
 
 - **Metodoloji** — production Go servisleri kurmak için 18 bölümlük bir el kitabı (dizin düzeni, katmanlı mimari, manuel DI, yapılandırma, yeniden denemeler, depolama, taşıma, işler, loglama, doğrulama, hatalar, test, derleme, dağıtım). [Kanonik tam belgeyi](skills/methodology/00-canonical-full.md) okuyun ya da bir [bölüm-skill](METHODOLOGY.md) seçin.
 - **Pattern'ler** — 10 kategoride 52 madde: yaratımsal, yapısal, davranışsal, eşzamanlılık, senkronizasyon, mesajlaşma, kararlılık, profilleme, deyim, anti-pattern'ler. Bkz. [PATTERNS.md](PATTERNS.md).
 - **Örnekler** — `_test.go` içeren 52 çalıştırılabilir Go pattern paketi. [`examples/`](examples/) altında tek bir ortak modül.
+- **Workflows** — takım tabanlı çalıştırılabilir skill'ler: [Project Assessment](skills/workflow/project-assessment.md) (mevcut bir projeyi değerlendir), [Feature Development](skills/workflow/feature-development.md) (bir özellik geliştir), [Security Code Review](skills/workflow/security-review.md) (denetle + düzelt).
 - **Site** — Linear tarzı GitHub Pages: <https://amazopic.github.io/go-skills/>
 - **MCP sunucusu** — gelecek bir yineleme için yer tutucu. Bkz. [`mcp/`](mcp/).
 

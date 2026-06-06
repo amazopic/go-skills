@@ -25,11 +25,14 @@
 
 ---
 
+> **Novi v go-skills? Začnite s [Project Assessment](skills/workflow/project-assessment.md).** Usmerite ga na svoj obstoječi Go projekt in pridobite oceno zrelosti ter prednostno razvrščen načrt, kjer je vsaka postavka povezana z natančno go-skills vzorcem ali poglavjem, ki ga je treba uporabiti — samo za branje, nikoli ne spremeni vaše kode.
+
 ## Vsebina
 
 - **Metodologija** — priročnik v 18 poglavjih za gradnjo production Go storitev (struktura imenikov, slojevita arhitektura, ročni DI, konfiguracija, ponovni poskusi, shranjevanje, transport, opravila, beleženje, validacija, napake, testiranje, gradnja, namestitev). Preberite [kanonični celoten dokument](skills/methodology/00-canonical-full.md) ali izberite posamezen [chapter-skill](METHODOLOGY.md).
 - **Vzorci** — več kot 52 vnosov v 10 kategorijah: ustvarjalni, strukturni, vedenjski, vzporednost, sinhronizacija, sporočanje, stabilnost, profiliranje, idiomi, anti-vzorci. Glejte [PATTERNS.md](PATTERNS.md).
 - **Primeri** — 52 izvršljivih paketov Go vzorcev z `_test.go`. En skupni modul v [`examples/`](examples/).
+- **Workflows** — izvršljive skills, ki temeljijo na ekipi: [Project Assessment](skills/workflow/project-assessment.md) (ocenite obstoječ projekt), [Feature Development](skills/workflow/feature-development.md) (zgradite funkcionalnost), [Security Code Review](skills/workflow/security-review.md) (revizija + odprava).
 - **Spletna stran** — GitHub Pages v slogu Linear: <https://amazopic.github.io/go-skills/>
 - **MCP server** — ogrodišče za prihodnjo iteracijo. Glejte [`mcp/`](mcp/).
 

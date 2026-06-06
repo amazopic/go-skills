@@ -204,7 +204,8 @@
           <h1 id="hero-title" data-i18n="hero.title">Senior Go developer. Rocket engine included.</h1>
           <p class="lede" data-i18n="hero.lede">Add one skill — code Go like a senior with 10+ years across hundreds of production projects. Claude Code + you + go-skills = no rookie mistakes, idiomatic Go from prompt one.</p>
           <div class="actions">
-            <a class="btn btn-primary" href="#catalog" data-i18n="hero.cta.catalog">Browse catalog</a>
+            <a class="btn btn-primary" href="#assess" data-i18n="hero.cta.assess">Assess your project</a>
+            <a class="btn" href="#catalog" data-i18n="hero.cta.catalog">Browse catalog</a>
             <a class="btn" href="#methodology" data-i18n="hero.cta.methodology">Read methodology</a>
             <a class="btn" href="https://github.com/amazopic/go-skills" data-i18n="hero.cta.github" data-github-readme>View on GitHub &rarr;</a>
           </div>
@@ -228,6 +229,22 @@
 4. List the skills you now have access to
 
 After install I want to code Go with senior-level patterns and the 18-chapter service-architecture methodology.</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-quickstart s-assess" id="assess">
+        <div class="wrap">
+          <span class="eyebrow" data-i18n="assess.eyebrow">Start here</span>
+          <h2 data-i18n="assess.title">Already have a Go project? Point go-skills at it.</h2>
+          <p class="lede" data-i18n="assess.lede">The fastest way in: a five-role team reads your codebase and returns a maturity score plus a prioritized roadmap — every item linked to the exact go-skills pattern or chapter to apply. Read-only; it never touches your code.</p>
+          <div class="prompt-card">
+            <button class="btn copy-btn" type="button" data-copy-target="#assess-prompt">
+              <span data-i18n="assess.copy">Copy prompt</span>
+            </button>
+            <pre id="assess-prompt"><code data-i18n="assess.prompt">Using the go-skills "Project Assessment" workflow skill, assess my existing Go project.
+
+Read the codebase under &lt;path&gt; and produce a maturity assessment plus a prioritized roadmap where every finding cites the specific go-skills methodology chapter or pattern to apply. Read-only — do not change any code. Then propose the first sprint.</code></pre>
           </div>
         </div>
       </section>
@@ -302,6 +319,16 @@ After install I want to code Go with senior-level patterns and the 18-chapter se
           <div class="cat-group">
             <h3 data-i18n="cat.workflow">Workflow</h3>
             <div class="pattern-grid">
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Project Assessment</h4>
+                <p class="desc">Start here on an existing project. Five specialists — senior Go, strong-middle Go, DB architect, test/reliability, SecOps — assess independently against the catalog; the senior consolidates a maturity report; a reverse analysis culls nitpicks; you approve a prioritized roadmap where every item links to a go-skill. Read-only.</p>
+<pre><code>5x assess    (parallel, vs the catalog)
+  -&gt; consolidate     (one maturity report)
+  -&gt; reverse-analysis (cull generic nitpicks)
+  -&gt; ROADMAP -&gt; your approval gate
+  -&gt; hand off to build / security flows</code></pre>
+              </article>
               <article class="card pattern-card">
                 <span class="status filled">filled</span>
                 <h4>Feature Development Flow</h4>

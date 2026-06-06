@@ -27,6 +27,7 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://amazopic.github.io/go-skills/?lang=pl"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://amazopic.github.io/go-skills/"/>
   </url>
+  <url><loc>https://amazopic.github.io/go-skills/#assess</loc><priority>0.9</priority></url>
   <url><loc>https://amazopic.github.io/go-skills/#methodology</loc><priority>0.9</priority></url>
   <url><loc>https://amazopic.github.io/go-skills/#catalog</loc><priority>0.9</priority></url>
   <url><loc>https://amazopic.github.io/go-skills/#install</loc><priority>0.7</priority></url>

@@ -25,11 +25,14 @@
 
 ---
 
+> **go-skills は初めてですか？[Project Assessment](skills/workflow/project-assessment.md) から始めましょう。** 既存の Go プロジェクトに向けるだけで、成熟度スコアと優先順位付けされたロードマップが得られます。各項目には、適用すべき go-skills のパターンや章への正確なリンクが付きます — 読み取り専用で、コードを一切変更しません。
+
 ## 内容
 
 - **方法論** — 本番 Go サービス構築のための 18 章の実践ガイド（ディレクトリ構成、レイヤードアーキテクチャ、手動 DI、設定、リトライ、ストレージ、transport、ジョブ、ログ、バリデーション、エラー、テスト、ビルド、デプロイ）。[完全な標準ドキュメント](skills/methodology/00-canonical-full.md)を読むか、[chapter-skill](METHODOLOGY.md) を個別に選択してください。
 - **パターン** — 10 カテゴリにわたる 52 以上のエントリ：生成型、構造型、振る舞い型、並行性、同期、メッセージング、安定性、プロファイリング、イディオム、アンチパターン。[PATTERNS.md](PATTERNS.md) を参照。
 - **サンプル** — `_test.go` 付きの 52 個の実行可能な Go パターンパッケージ。[`examples/`](examples/) 以下に共有モジュールが 1 つ。
+- **ワークフロー** — チームベースで実行可能な skills：[Project Assessment](skills/workflow/project-assessment.md)（既存プロジェクトを評価）、[Feature Development](skills/workflow/feature-development.md)（機能を構築）、[Security Code Review](skills/workflow/security-review.md)（監査と修正）。
 - **サイト** — Linear スタイルの GitHub Pages：<https://amazopic.github.io/go-skills/>
 - **MCP server** — 将来のイテレーション向けのプレースホルダー。[`mcp/`](mcp/) を参照。
 

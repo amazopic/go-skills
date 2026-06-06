@@ -25,11 +25,14 @@
 
 ---
 
+> **Nowy w go-skills? Zacznij od [Project Assessment](skills/workflow/project-assessment.md).** Skieruj go na swój istniejący projekt w Go i otrzymaj ocenę dojrzałości oraz priorytetową mapę drogową, w której każdy punkt prowadzi do dokładnego wzorca lub rozdziału go-skills do zastosowania — tylko do odczytu, nigdy nie zmienia Twojego kodu.
+
 ## Co znajdziesz w środku
 
 - **Metodologia** — 18-rozdziałowy podręcznik budowy produkcyjnych usług w Go (układ katalogów, architektura warstwowa, ręczne DI, konfiguracja, ponawianie, przechowywanie, transport, zadania, logowanie, walidacja, błędy, testowanie, budowanie, wdrażanie). Przeczytaj [kanoniczny pełny dokument](skills/methodology/00-canonical-full.md) lub wybierz [rozdział-skill](METHODOLOGY.md).
 - **Wzorce** — ponad 52 wpisów w 10 kategoriach: kreacyjne, strukturalne, behawioralne, współbieżność, synchronizacja, komunikaty, stabilność, profilowanie, idiomy, antywzorce. Zobacz [PATTERNS.md](PATTERNS.md).
 - **Przykłady** — 52 uruchamialne pakiety wzorców w Go z `_test.go`. Jeden współdzielony moduł w [`examples/`](examples/).
+- **Workflows** — uruchamialne skille oparte na pracy zespołu: [Project Assessment](skills/workflow/project-assessment.md) (oceń istniejący projekt), [Feature Development](skills/workflow/feature-development.md) (zbuduj funkcję), [Security Code Review](skills/workflow/security-review.md) (audyt i naprawa).
 - **Strona** — GitHub Pages w stylu Linear: <https://amazopic.github.io/go-skills/>
 - **Serwer MCP** — placeholder dla przyszłej iteracji. Zobacz [`mcp/`](mcp/).
 

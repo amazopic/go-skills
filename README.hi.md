@@ -25,11 +25,14 @@
 
 ---
 
+> **go-skills में नए हैं? [Project Assessment](skills/workflow/project-assessment.md) से शुरू करें।** इसे अपने मौजूदा Go प्रोजेक्ट पर लगाएँ और एक मैच्योरिटी स्कोर के साथ एक प्राथमिकता-क्रम वाला रोडमैप पाएँ, जहाँ हर आइटम ठीक उसी go-skills पैटर्न या अध्याय से जुड़ा होता है जिसे लागू करना है — केवल-पठन, यह आपके कोड को कभी नहीं बदलता।
+
 ## अंदर क्या है
 
 - **पद्धति (Methodology)** — प्रोडक्शन Go सेवाएँ बनाने के लिए 18-अध्याय की एक प्लेबुक (डायरेक्टरी लेआउट, स्तरित आर्किटेक्चर, मैनुअल DI, कॉन्फ़िगरेशन, रिट्राई, स्टोरेज, ट्रांसपोर्ट, जॉब्स, लॉगिंग, सत्यापन, एरर, टेस्टिंग, बिल्ड, डिप्लॉय)। [प्रामाणिक पूर्ण दस्तावेज़](skills/methodology/00-canonical-full.md) पढ़ें या एक [अध्याय-skill](METHODOLOGY.md) चुनें।
 - **पैटर्न (Patterns)** — 10 श्रेणियों में 52 प्रविष्टियाँ: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns। देखें [PATTERNS.md](PATTERNS.md)।
 - **उदाहरण (Examples)** — `_test.go` के साथ 52 चलाने योग्य Go पैटर्न पैकेज। [`examples/`](examples/) के अंतर्गत एक साझा मॉड्यूल।
+- **वर्कफ़्लो (Workflows)** — चलाने योग्य टीम-आधारित skills: [Project Assessment](skills/workflow/project-assessment.md) (एक मौजूदा प्रोजेक्ट का आकलन करें), [Feature Development](skills/workflow/feature-development.md) (एक फ़ीचर बनाएँ), [Security Code Review](skills/workflow/security-review.md) (ऑडिट + सुधार)।
 - **साइट (Site)** — Linear-शैली वाला GitHub Pages: <https://amazopic.github.io/go-skills/>
 - **MCP सर्वर** — भविष्य के एक संस्करण के लिए प्लेसहोल्डर। देखें [`mcp/`](mcp/)।
 

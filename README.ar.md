@@ -25,6 +25,8 @@
 
 ---
 
+> **جديد على go-skills؟ ابدأ بـ [Project Assessment](skills/workflow/project-assessment.md).** وجّهه إلى مشروع Go الحالي الخاص بك واحصل على درجة نضج إضافةً إلى خارطة طريق مُرتّبة حسب الأولوية حيث يرتبط كل عنصر بنمط go-skills أو الفصل الدقيق المطلوب تطبيقه — للقراءة فقط، لا يُغيّر شيفرتك أبداً.
+
 ## المحتوى
 
 <div dir="rtl">
@@ -32,6 +34,7 @@
 - **المنهجية** — دليل عملي من 18 فصلاً لبناء خدمات Go في بيئة الإنتاج (هيكل الدلائل، البنية متعددة الطبقات، حقن التبعيات اليدوي، الإعداد، إعادة المحاولة، التخزين، transport، المهام، التسجيل، التحقق، الأخطاء، الاختبار، البناء، النشر). اقرأ [الوثيقة الكاملة](skills/methodology/00-canonical-full.md) أو اختر [chapter-skill](METHODOLOGY.md) منفرداً.
 - **الأنماط** — أكثر من 52 مدخلاً في 10 فئات: إنشائية، هيكلية، سلوكية، تزامن، مزامنة، رسائل، استقرار، تحليل الأداء، تعابير اصطلاحية، أنماط مضادة. انظر [PATTERNS.md](PATTERNS.md).
 - **الأمثلة** — 52 حزمة Go قابلة للتشغيل مع `_test.go`. وحدة مشتركة واحدة ضمن [`examples/`](examples/).
+- **سير العمل** — مهارات قابلة للتشغيل قائمة على الفريق: [Project Assessment](skills/workflow/project-assessment.md) (تقييم مشروع قائم)، [Feature Development](skills/workflow/feature-development.md) (بناء ميزة)، [Security Code Review](skills/workflow/security-review.md) (تدقيق + معالجة).
 - **الموقع** — GitHub Pages بتصميم Linear: <https://amazopic.github.io/go-skills/>
 - **MCP server** — عنصر احتياطي لتكرار مستقبلي. انظر [`mcp/`](mcp/).
 
