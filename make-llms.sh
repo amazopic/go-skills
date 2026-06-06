@@ -33,6 +33,7 @@ find "$ROOT/skills" -type f -name '*.md' | sort | while read -r f; do
 done
 
 cp "$OUT" "$DOCS_OUT"
+cp "$ROOT/llms.txt" "$ROOT/docs/llms.txt" # keep the PUBLISHED index in sync with the canonical one
 
-echo "Wrote: $OUT and $DOCS_OUT"
+echo "Wrote: $OUT and $DOCS_OUT (+ docs/llms.txt synced)"
 wc -l "$OUT" "$DOCS_OUT"

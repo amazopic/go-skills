@@ -1,4 +1,35 @@
+# go-skills — https://amazopic.github.io/go-skills/
+# AI agents & LLM crawlers are welcome. Curated, machine-readable indexes:
+#   https://amazopic.github.io/go-skills/llms.txt        (table of contents)
+#   https://amazopic.github.io/go-skills/llms-full.txt   (full corpus for ingestion)
+
 User-agent: *
+Allow: /
+
+# The major AI crawlers are already covered by "*" above; named here to make the
+# welcome posture explicit (flip an Allow to Disallow to opt a specific agent out).
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://amazopic.github.io/go-skills/sitemap.xml

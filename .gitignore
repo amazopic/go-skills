@@ -8,3 +8,6 @@ node_modules/
 coverage.out
 coverage.html
 bin/
+
+# brainstorming/writing-plans skills save here, but docs/ is the published Pages root — keep planning out of the live site
+docs/superpowers/

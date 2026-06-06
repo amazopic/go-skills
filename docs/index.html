@@ -12,9 +12,10 @@
     <meta name="author" content="Yevgeniy Achin" />
     <meta name="keywords" content="go, golang, design patterns, concurrency patterns, service architecture, methodology, claude code, skills, mcp, github pages" />
     <link rel="canonical" href="https://amazopic.github.io/go-skills/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 
     <link rel="alternate" hreflang="x-default" href="https://amazopic.github.io/go-skills/" />
-    <link rel="alternate" hreflang="en" href="https://amazopic.github.io/go-skills/?lang=en" />
+    <link rel="alternate" hreflang="en" href="https://amazopic.github.io/go-skills/" />
     <link rel="alternate" hreflang="ru" href="https://amazopic.github.io/go-skills/?lang=ru" />
     <link rel="alternate" hreflang="fr" href="https://amazopic.github.io/go-skills/?lang=fr" />
     <link rel="alternate" hreflang="de" href="https://amazopic.github.io/go-skills/?lang=de" />
@@ -95,6 +96,7 @@
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Cross-platform",
       "description": "A Go knowledge base — architectural patterns and a service-building methodology — packaged as Claude Code skills.",
+      "image": "https://amazopic.github.io/go-skills/og-image.png",
       "softwareVersion": "0.1.0",
       "datePublished": "2026-05-10",
       "author": { "@type": "Person", "name": "Yevgeniy Achin", "email": "amazopic@gmail.com", "url": "https://github.com/amazopic" },
@@ -136,7 +138,7 @@
         { "@type": "Question", "name": "Why build this when go-patterns already exists on GitHub?", "acceptedAnswer": { "@type": "Answer", "text": "go-skills consolidates two upstream archives (theory + runnable code), adds a service-architecture methodology, and packages everything as Claude Code-compatible skills with rich frontmatter — so your editor surfaces the right pattern automatically." } },
         { "@type": "Question", "name": "Are the patterns idiomatic Go or GoF translations?", "acceptedAnswer": { "@type": "Answer", "text": "Both. Concurrency, messaging, stability, profiling, idiom — these are Go-native. Creational/structural/behavioral are GoF translated to Go with idiomatic adjustments." } },
         { "@type": "Question", "name": "How were the patterns vetted?", "acceptedAnswer": { "@type": "Answer", "text": "Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 52 example packages pass go test -race." } },
-        { "@type": "Question", "name": "Will the examples run on my machine?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — one shared go.mod at examples/. Run cd examples && go test ./... . Go 1.21+." } },
+        { "@type": "Question", "name": "Will the examples run on my machine?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — one shared go.mod at examples/. Run cd examples && go test ./... . Go 1.22+." } },
         { "@type": "Question", "name": "When will the MCP server land?", "acceptedAnswer": { "@type": "Answer", "text": "A future iteration. The mcp/ folder holds a roadmap-only README in v1; the protocol surface is sketched there." } },
         { "@type": "Question", "name": "Why Linear's design system?", "acceptedAnswer": { "@type": "Answer", "text": "Linear's near-black + single-accent aesthetic matches the content — dense, technical, no decoration." } },
         { "@type": "Question", "name": "License?", "acceptedAnswer": { "@type": "Answer", "text": "MIT. Use, fork, redistribute freely." } },
@@ -923,7 +925,7 @@ func (b *Breaker) Call(fn func() error) error {
             <dd data-i18n="faq.a3">Every one of the 52 entries was written by a senior Go consultant — idiomatic Go, opinionated guidance on when the GoF shape fits and when a Go-native alternative wins. All 52 example packages pass <code>go test -race</code>; no upstream bugs left behind.</dd>
 
             <dt data-i18n="faq.q4">Will the examples run on my machine?</dt>
-            <dd data-i18n="faq.a4">Yes — one shared <code>go.mod</code> at <code>examples/</code>. Run <code>cd examples &amp;&amp; go test ./...</code>. Go 1.21+.</dd>
+            <dd data-i18n="faq.a4">Yes — one shared <code>go.mod</code> at <code>examples/</code>. Run <code>cd examples &amp;&amp; go test ./...</code>. Go 1.22+.</dd>
 
             <dt data-i18n="faq.q5">When will the MCP server land?</dt>
             <dd data-i18n="faq.a5">A future iteration. The <code>mcp/</code> folder holds a roadmap-only README in v1; the protocol surface is sketched there.</dd>
@@ -939,20 +941,19 @@ func (b *Breaker) Call(fn func() error) error {
           </dl>
         </div>
       </section>
-
-      <footer class="s-colophon">
-        <div class="wrap">
-          <p>go-skills &middot; MIT &middot; Yevgeniy Achin</p>
-          <div class="links">
-            <a href="https://github.com/amazopic/go-skills" data-github-readme>GitHub</a>
-            <a href="/go-skills/llms.txt">llms.txt</a>
-            <a href="/go-skills/llms-full.txt">llms-full.txt</a>
-            <a href="#">Top &uarr;</a>
-          </div>
-        </div>
-      </footer>
-
     </main>
+
+    <footer class="s-colophon">
+      <div class="wrap">
+        <p>go-skills &middot; MIT &middot; Yevgeniy Achin</p>
+        <div class="links">
+          <a href="https://github.com/amazopic/go-skills" data-github-readme>GitHub</a>
+          <a href="/go-skills/llms.txt">llms.txt</a>
+          <a href="/go-skills/llms-full.txt">llms-full.txt</a>
+          <a href="#hero-title">Top &uarr;</a>
+        </div>
+      </div>
+    </footer>
 
     <script type="module" src="js/main.js"></script>
   </body>
