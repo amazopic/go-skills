@@ -111,7 +111,7 @@ Use the Bus variant when you need loose coupling without encoded orchestration r
 - **Circular notification**: a colleague notifies the mediator, which calls back into the same colleague, which notifies the mediator again. Guard with a "processing" flag or event deduplication.
 - **Concurrency**: if colleagues run concurrently, `Notify` must be goroutine-safe. The struct Mediator in the example is not — add a mutex or serialize via a channel.
 - **Testing**: the mediator is the hardest part to unit test because it wires everything together. Inject a mock mediator into each colleague to test them in isolation.
-- **Cyrillic function names**: the example has `СonnectСolleagues` with Cyrillic `С` characters — this compiles fine in Go but can surprise code reviewers. Rename to ASCII in production code.
+- **Homoglyphs in identifiers**: a Cyrillic `С` (U+0421) is visually identical to Latin `C` but is a different rune, so `СonnectColleagues` and `ConnectColleagues` are not the same identifier — and the homoglyph version is uncallable by the obvious Latin name. Keep identifiers ASCII; `grep -P '[^\x00-\x7F]'` over your `.go` files catches accidental homoglyphs.
 
 ## See also
 

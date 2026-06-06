@@ -35,7 +35,7 @@ type Enginer interface {
 
 // Carer is the "abstraction" side.
 type Carer interface {
-    Rase() string
+    Race() string
 }
 
 // Car is the refined abstraction — it delegates to the engine.
@@ -47,7 +47,7 @@ func NewCar(engine Enginer) Carer {
     return &Car{engine: engine}
 }
 
-func (c *Car) Rase() string {
+func (c *Car) Race() string {
     return c.engine.GetSound()
 }
 
@@ -63,10 +63,10 @@ Usage:
 
 ```go
 car := NewCar(&EngineSuzuki{})
-fmt.Println(car.Rase()) // SssuuuuZzzuuuuKkiiiii
+fmt.Println(car.Race()) // SssuuuuZzzuuuuKkiiiii
 
 car2 := NewCar(&EngineHonda{})
-fmt.Println(car2.Rase()) // HhoooNnnnnnnnnDddaaaaaaa
+fmt.Println(car2.Race()) // HhoooNnnnnnnnnDddaaaaaaa
 ```
 
 No new types needed to mix any car with any engine.
@@ -90,7 +90,7 @@ If your abstraction has only one concrete form, there is no Bridge — there is 
 
 ## Gotchas
 
-- **Nil implementation field.** If `engine` is not set before `Rase()` is called, you get a nil-pointer panic. Enforce injection in the constructor and return an error or panic early rather than deferring the failure.
+- **Nil implementation field.** If `engine` is not set before `Race()` is called, you get a nil-pointer panic. Enforce injection in the constructor and return an error or panic early rather than deferring the failure.
 - **Over-abstraction.** Two interfaces with one implementation each is not Bridge — it is premature abstraction. Wait until you actually have two concrete implementations on each axis.
 - **Interface bloat on the implementation side.** Keep `Enginer` minimal (one or two methods). A fat implementation interface defeats the point: implementations become hard to swap and easy to break.
 - **Concurrency.** If the bridge field can be swapped at runtime, guard it with a `sync.RWMutex`. Unsynchronised field replacement is a data race under `-race`.

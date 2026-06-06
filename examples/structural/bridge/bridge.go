@@ -3,7 +3,7 @@ package bridge
 
 // Carer provides car interface.
 type Carer interface {
-	Rase() string
+	Race() string
 }
 
 // Enginer provides engine interface.
@@ -23,8 +23,8 @@ func NewCar(engine Enginer) Carer {
 	}
 }
 
-// Rase implementation.
-func (c *Car) Rase() string {
+// Race implementation.
+func (c *Car) Race() string {
 	return c.engine.GetSound()
 }
 

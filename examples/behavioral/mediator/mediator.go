@@ -26,8 +26,8 @@ func (m *ConcreteMediator) Notify(msg string) {
 	}
 }
 
-// СonnectСolleagues connects all colleagues.
-func СonnectСolleagues(farmer *Farmer, cannery *Cannery, shop *Shop) {
+// ConnectColleagues connects all colleagues.
+func ConnectColleagues(farmer *Farmer, cannery *Cannery, shop *Shop) {
 	mediator := &ConcreteMediator{
 		Farmer:  farmer,
 		Cannery: cannery,

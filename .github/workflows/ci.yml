@@ -1,0 +1,58 @@
+name: examples-ci
+
+# Gate the examples module on the bar the methodology prescribes (gofmt, vet, race, cover),
+# so the drift the Project Assessment found (gofmt drift, a dead test, a stale all-clear)
+# can't recur silently. The module is stdlib-only, so there are no third-party deps to cache.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'examples/**'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: examples/go.mod
+          cache: false
+
+      - name: gofmt (no drift)
+        run: |
+          drift="$(gofmt -l .)"
+          if [ -n "$drift" ]; then
+            echo "gofmt drift in:"; echo "$drift"; exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test -race
+        run: go test -race -count=1 ./...
+
+      - name: go test -cover
+        run: go test -cover ./...
+
+      - name: govulncheck
+        continue-on-error: true # toolchain advisories are surfaced, not fatal (stdlib-only module)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...

@@ -1,4 +1,12 @@
-// Package prototype is an example of the Singleton Pattern.
+// Package prototype is an example of the Prototype Pattern.
+//
+// The Prototype pattern creates new objects by cloning an existing
+// instance (the prototype) via a Clone method, rather than constructing
+// them from scratch. This is useful when object creation is expensive or
+// when the concrete type to instantiate is decided at runtime.
+//
+// Here Prototyper declares Clone, and ConcreteProduct.Clone returns an
+// independent copy of the receiver.
 package prototype
 
 // Prototyper provides a cloning interface.

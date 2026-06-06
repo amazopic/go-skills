@@ -15,7 +15,7 @@ Bridge decouples an abstraction (`Car`/`Carer`) from its implementation (`Engine
 
 ## How the bridge works
 
-`Car.engine` is the bridge field. Any `Enginer` can be injected at construction time via `NewCar(engine Enginer)`. The `Rase()` method delegates entirely to `engine.GetSound()`. Three engines × any number of car types = no combinatorial explosion.
+`Car.engine` is the bridge field. Any `Enginer` can be injected at construction time via `NewCar(engine Enginer)`. The `Race()` method delegates entirely to `engine.GetSound()`. Three engines × any number of car types = no combinatorial explosion.
 
 ## Run the tests
 

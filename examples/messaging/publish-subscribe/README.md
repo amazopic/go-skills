@@ -43,8 +43,12 @@ sub.Unsubscribe()
 - **No goroutine leaks:** context cancellation tears the subscription down and
   closes `sub.C`; the lifetime goroutine waits on a private `done` channel so it
   never steals messages from the consumer.
-- **Concurrency-safe:** any number of publishers and subscribers; channel sends
-  happen outside the broker lock.
+- **Concurrency-safe:** any number of publishers and subscribers. `Publish`
+  fans out under the broker's *read* lock and teardown (`Unsubscribe`/`Close`)
+  closes channels under the *write* lock, so the two are mutually exclusive — a
+  channel can never be closed mid-send (no "send on closed channel" panic). The
+  send is non-blocking (`select`/`default`), so holding the read lock during
+  fan-out never stalls and still admits concurrent publishers.
 
 ## Run
 

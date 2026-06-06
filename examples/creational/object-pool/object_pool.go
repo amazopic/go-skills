@@ -149,12 +149,19 @@ func (p *Pool[T]) Put(obj T) error {
 		p.reset(obj)
 	}
 
+	// Hold the lock across the send. Close also closes p.free under this same
+	// lock, so checking closed and sending in one critical section closes the
+	// TOCTOU window: the channel cannot be closed between the check and the send.
+	// A naive "check closed, unlock, then send" leaves a gap where a concurrent
+	// Close turns the send into a panic ("send on closed channel").
+	//
+	// The send is non-blocking (select/default), so holding the lock here cannot
+	// deadlock: it returns immediately whether the free list has room or not.
 	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.closed {
-		p.mu.Unlock()
 		return ErrPoolClosed
 	}
-	p.mu.Unlock()
 
 	// Non-blocking by construction: cap(free) == size >= live objects.
 	select {

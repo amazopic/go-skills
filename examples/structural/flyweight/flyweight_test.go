@@ -2,6 +2,7 @@ package flyweight
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -28,5 +29,65 @@ func TestFlyweight(t *testing.T) {
 				t.Errorf("Expect result to equal %s, but %s.\n", tt.expect, result)
 			}
 		})
+	}
+}
+
+// TestFlyweightConcurrent hammers GetFlyweight from many goroutines on both the
+// same and different keys. It asserts the factory's interning guarantee — every
+// request for a given key must return the *same* pointer — while exercising the
+// shared cache hard enough to trip the race detector if the map were unguarded.
+func TestFlyweightConcurrent(t *testing.T) {
+	const (
+		goroutines = 64
+		iterations = 200
+	)
+
+	// A small key set so many goroutines collide on the same entries (forcing
+	// concurrent read/write of the same map slots), plus distinct keys to drive
+	// concurrent inserts of brand-new entries.
+	keys := []string{"cat.jpg", "dog.jpg", "fox.jpg", "owl.jpg"}
+
+	// Factory is intentionally zero-valued so the lazy pool init also races
+	// across goroutines on the very first calls.
+	var factory FlyweightFactory
+
+	// Collect, per key, the set of distinct pointers observed. Interning means
+	// each key must map to exactly one pointer no matter the concurrency.
+	var mu sync.Mutex
+	seen := make(map[string]map[Flyweighter]struct{}, len(keys))
+	for _, k := range keys {
+		seen[k] = make(map[Flyweighter]struct{})
+	}
+
+	var start sync.WaitGroup
+	start.Add(1)
+	var done sync.WaitGroup
+	done.Add(goroutines)
+
+	for g := 0; g < goroutines; g++ {
+		go func(g int) {
+			defer done.Done()
+			start.Wait() // release all goroutines at once to maximize contention
+			for i := 0; i < iterations; i++ {
+				key := keys[(g+i)%len(keys)]
+				fw := factory.GetFlyweight(key)
+				if fw == nil {
+					t.Errorf("GetFlyweight(%q) returned nil", key)
+					return
+				}
+				mu.Lock()
+				seen[key][fw] = struct{}{}
+				mu.Unlock()
+			}
+		}(g)
+	}
+
+	start.Done()
+	done.Wait()
+
+	for _, k := range keys {
+		if n := len(seen[k]); n != 1 {
+			t.Errorf("interning violated for key %q: observed %d distinct flyweights, want 1", k, n)
+		}
 	}
 }

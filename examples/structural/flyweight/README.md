@@ -23,7 +23,7 @@ Two calls with `"cat.jpg"` return the **same** `*ConcreteFlyweight`. Only `Draw`
 
 ## Concurrency note
 
-The factory's `pool` map is **not** goroutine-safe as written. For concurrent use, protect it with a `sync.RWMutex` (see `skills/structural/flyweight.md` for the double-checked locking snippet).
+The factory's `pool` map is a shared interning cache, so it is guarded by a `sync.RWMutex`. `GetFlyweight` is safe for concurrent use: lookups take the read lock and only first-time inserts upgrade to the write lock, using double-checked locking to avoid duplicate allocations (see `skills/structural/flyweight.md` for the snippet).
 
 ## Run the tests
 

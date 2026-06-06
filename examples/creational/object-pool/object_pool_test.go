@@ -395,6 +395,108 @@ func TestConcurrent_NeverExceedsCapacity(t *testing.T) {
 	}
 }
 
+// TestConcurrent_PutRacingClose stresses the Put/Close TOCTOU window: many
+// goroutines hammer Put (and Get) while another goroutine Closes the pool. On a
+// naive implementation that checks `closed` under the lock but then sends on the
+// free channel after releasing it, Close can close the channel in that gap,
+// making the unlocked `p.free <- obj` panic with "send on closed channel".
+//
+// A correct implementation must guarantee that Put racing Close NEVER panics: a
+// concurrent Put either succeeds (object reused) or observes the pool as closed
+// and drops the object — but it can never send on a closed channel. Run with
+// -race and a high -count to expose any remaining window.
+func TestConcurrent_PutRacingClose(t *testing.T) {
+	const (
+		size    = 8
+		putters = 64
+		opsEach = 50
+	)
+
+	factory, _ := newCountingFactory()
+	p, err := New[*int](size, factory, nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	ctx := context.Background()
+
+	// Pre-fill the free list so Put has real objects to push and Get has work
+	// to do, maximizing pressure on the free channel right as Close fires.
+	prefill := make([]*int, 0, size)
+	for i := 0; i < size; i++ {
+		obj, gErr := p.Get(ctx)
+		if gErr != nil {
+			t.Fatalf("prefill Get: %v", gErr)
+		}
+		prefill = append(prefill, obj)
+	}
+
+	// A barrier so every goroutine starts pounding the pool at the same instant,
+	// widening the race window that the Put/Close TOCTOU lives in.
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+
+	// Putters: continuously Get then Put, returning objects right as Close may
+	// fire. Get may legitimately fail once the pool is closed; we only require
+	// that Put never panics. ErrPoolClosed from either call is an acceptable,
+	// race-free outcome. Each Put hands off a freshly allocated object and never
+	// touches it again, so the only memory touched concurrently is the pool's
+	// own channel — exactly the Put/Close interleaving under test.
+	wg.Add(putters)
+	for g := 0; g < putters; g++ {
+		go func(seed int) {
+			defer wg.Done()
+			<-start
+			for i := 0; i < opsEach; i++ {
+				n := seed*opsEach + i
+				// Put must be panic-free even if Close ran concurrently. After
+				// the handoff we drop our reference; the object is the pool's.
+				if pErr := p.Put(&n); pErr != nil && !errors.Is(pErr, ErrPoolClosed) {
+					t.Errorf("Put: unexpected error %v", pErr)
+					return
+				}
+				if _, gErr := p.Get(ctx); gErr != nil {
+					if errors.Is(gErr, ErrPoolClosed) {
+						return // pool closed: clean shutdown, stop.
+					}
+					t.Errorf("Get: unexpected error %v", gErr)
+					return
+				}
+			}
+		}(g)
+	}
+
+	// Return the prefilled objects too, racing the close.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-start
+		for _, obj := range prefill {
+			if pErr := p.Put(obj); pErr != nil && !errors.Is(pErr, ErrPoolClosed) {
+				t.Errorf("prefill Put: unexpected error %v", pErr)
+				return
+			}
+		}
+	}()
+
+	// Closer: fires concurrently with all the Puts above.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-start
+		if cErr := p.Close(nil); cErr != nil {
+			t.Errorf("Close: %v", cErr)
+		}
+	}()
+
+	close(start) // unleash everyone simultaneously
+	wg.Wait()
+
+	// The pool must be closed afterward; further Put is a no-op error, not a panic.
+	if pErr := p.Put(new(int)); !errors.Is(pErr, ErrPoolClosed) {
+		t.Errorf("Put after wait = %v, want ErrPoolClosed", pErr)
+	}
+}
+
 // Example demonstrates the typical Get/defer-Put lifecycle.
 func Example() {
 	p, err := New[*bytes.Buffer](

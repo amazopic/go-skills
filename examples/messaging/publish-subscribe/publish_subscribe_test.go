@@ -233,6 +233,84 @@ func TestBroker_PublishRespectsContext(t *testing.T) {
 	}
 }
 
+// TestBroker_PublishRaceTeardown hammers Publish against concurrent Unsubscribe
+// and Close to surface a send-on-closed-channel TOCTOU. If Publish ever performs
+// a channel send after teardown has closed that channel, the runtime panics with
+// "send on closed channel" — which a test failure cannot recover from, so this
+// test simply must not panic. It is intended to run green under -race -count=N.
+//
+// Pre-fix (send outside the broker lock) this panics reliably under -race.
+func TestBroker_PublishRaceTeardown(t *testing.T) {
+	const (
+		rounds      = 40
+		subscribers = 12
+		publishers  = 8
+	)
+
+	for r := 0; r < rounds; r++ {
+		b := New[int]()
+		ctx := context.Background()
+
+		// Fresh batch of subscribers per round. Buffer 1 so sends actually run
+		// the send/drop select path (the dangerous code) rather than always
+		// taking default. Consumers drain so the buffer keeps making room.
+		subs := make([]*Subscription[int], subscribers)
+		var drainWg sync.WaitGroup
+		for i := range subs {
+			s, err := b.Subscribe(ctx, "race", 1)
+			if err != nil {
+				t.Fatalf("Subscribe: %v", err)
+			}
+			subs[i] = s
+			drainWg.Add(1)
+			go func(s *Subscription[int]) {
+				defer drainWg.Done()
+				for range s.C {
+				}
+			}(s)
+		}
+
+		var pubWg sync.WaitGroup
+		stop := make(chan struct{})
+		pubWg.Add(publishers)
+		for p := 0; p < publishers; p++ {
+			go func() {
+				defer pubWg.Done()
+				for {
+					select {
+					case <-stop:
+						return
+					default:
+					}
+					// A panic here (send on closed channel) is the bug; this
+					// call must remain safe even as subscribers are torn down
+					// and the broker is closed underneath it.
+					_, _ = b.Publish(ctx, "race", 1)
+				}
+			}()
+		}
+
+		// Race teardown against the in-flight publishers: unsubscribe each
+		// subscriber concurrently, then close the broker (which closes any
+		// remaining channels). Either path can close a channel a publisher is
+		// about to send on.
+		var tearWg sync.WaitGroup
+		tearWg.Add(subscribers)
+		for _, s := range subs {
+			go func(s *Subscription[int]) {
+				defer tearWg.Done()
+				s.Unsubscribe()
+			}(s)
+		}
+		tearWg.Wait()
+		b.Close()
+
+		close(stop)
+		pubWg.Wait()
+		drainWg.Wait()
+	}
+}
+
 // TestBroker_ConcurrentPublishersAndSubscribers exercises the broker under load
 // with many concurrent publishers and subscribers. It asserts each subscriber
 // receives every message exactly once (buffers are sized to never drop).
