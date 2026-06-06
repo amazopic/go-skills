@@ -13,7 +13,14 @@
   <a href="README.zh.md">中文</a> ·
   <a href="README.ja.md">日本語</a> ·
   <a href="README.ko.md">한국어</a> ·
-  <a href="README.ar.md">العربية</a>
+  <a href="README.ar.md">العربية</a> ·
+  <a href="README.pt-BR.md">Português (BR)</a> ·
+  <a href="README.tr.md">Türkçe</a> ·
+  <a href="README.id.md">Bahasa Indonesia</a> ·
+  <a href="README.vi.md">Tiếng Việt</a> ·
+  <a href="README.hi.md">हिन्दी</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.pl.md">Polski</a>
 </p>
 
 ---

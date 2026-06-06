@@ -1,5 +1,5 @@
 <p align="center"><a href="https://amazopic.github.io/go-skills/"><b>go-skills</b></a></p>
-<p align="center">Architectural patterns and methodology for Go services — packaged as Claude Code skills.</p>
+<p align="center">Go servisleri için mimari pattern'ler ve metodoloji — Claude Code skills olarak paketlenmiş.</p>
 
 <p align="center">
   <a href="README.md">English</a> ·
@@ -25,21 +25,21 @@
 
 ---
 
-## What's inside
+## İçindekiler
 
-- **Methodology** — an 18-chapter playbook for building production Go services (directory layout, layered architecture, manual DI, configuration, retries, storage, transport, jobs, logging, validation, errors, testing, build, deploy). Read the [canonical full doc](skills/methodology/00-canonical-full.md) or pick a [chapter-skill](METHODOLOGY.md).
-- **Patterns** — 50+ entries across 9 categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns. See [PATTERNS.md](PATTERNS.md).
-- **Examples** — 23 runnable Go pattern packages with `_test.go`. One shared module under [`examples/`](examples/).
-- **Site** — Linear-styled GitHub Pages: <https://amazopic.github.io/go-skills/>
-- **MCP server** — placeholder for a future iteration. See [`mcp/`](mcp/).
+- **Metodoloji** — production Go servisleri kurmak için 18 bölümlük bir el kitabı (dizin düzeni, katmanlı mimari, manuel DI, yapılandırma, yeniden denemeler, depolama, taşıma, işler, loglama, doğrulama, hatalar, test, derleme, dağıtım). [Kanonik tam belgeyi](skills/methodology/00-canonical-full.md) okuyun ya da bir [bölüm-skill](METHODOLOGY.md) seçin.
+- **Pattern'ler** — 9 kategoride 50+ madde: yaratımsal, yapısal, davranışsal, eşzamanlılık, senkronizasyon, mesajlaşma, kararlılık, profilleme, deyim, anti-pattern'ler. Bkz. [PATTERNS.md](PATTERNS.md).
+- **Örnekler** — `_test.go` içeren 23 çalıştırılabilir Go pattern paketi. [`examples/`](examples/) altında tek bir ortak modül.
+- **Site** — Linear tarzı GitHub Pages: <https://amazopic.github.io/go-skills/>
+- **MCP sunucusu** — gelecek bir yineleme için yer tutucu. Bkz. [`mcp/`](mcp/).
 
-## Install as Claude Code skills
+## Claude Code skills olarak kurulum
 
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```
 
-Add to `~/.claude/settings.json`:
+`~/.claude/settings.json` dosyasına ekleyin:
 
 ```json
 {
@@ -49,19 +49,19 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
-Restart Claude Code.
+Claude Code'u yeniden başlatın.
 
-## Run examples
+## Örnekleri çalıştırma
 
 ```bash
 cd examples
 go test ./...
 ```
 
-## License
+## Lisans
 
-MIT — see [LICENSE](LICENSE).
+MIT — bkz. [LICENSE](LICENSE).
 
-## Author
+## Yazar
 
 Yevgeniy Achin · <https://github.com/amazopic>

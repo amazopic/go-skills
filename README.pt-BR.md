@@ -1,5 +1,5 @@
 <p align="center"><a href="https://amazopic.github.io/go-skills/"><b>go-skills</b></a></p>
-<p align="center">Patrones de arquitectura y metodología para servicios Go — empaquetados como Claude Code skills.</p>
+<p align="center">Padrões arquiteturais e metodologia para serviços Go — empacotados como skills do Claude Code.</p>
 
 <p align="center">
   <a href="README.md">English</a> ·
@@ -25,21 +25,21 @@
 
 ---
 
-## Contenido
+## O que tem dentro
 
-- **Metodología** — una guía práctica de 18 capítulos para construir servicios Go en producción (estructura de directorios, arquitectura por capas, DI manual, configuración, reintentos, almacenamiento, transport, tareas, logging, validación, errores, testing, build, deploy). Lee el [documento canónico completo](skills/methodology/00-canonical-full.md) o elige un [chapter-skill](METHODOLOGY.md).
-- **Patrones** — más de 50 entradas en 9 categorías: creacionales, estructurales, de comportamiento, concurrencia, sincronización, mensajería, estabilidad, profiling, idiomas, anti-patrones. Ver [PATTERNS.md](PATTERNS.md).
-- **Ejemplos** — 23 paquetes Go de patrones ejecutables con `_test.go`. Un módulo compartido en [`examples/`](examples/).
-- **Sitio** — GitHub Pages con estilo Linear: <https://amazopic.github.io/go-skills/>
-- **MCP server** — marcador de posición para una iteración futura. Ver [`mcp/`](mcp/).
+- **Metodologia** — um manual de 18 capítulos para construir serviços Go em produção (estrutura de diretórios, arquitetura em camadas, DI manual, configuração, retentativas, armazenamento, transporte, jobs, logging, validação, erros, testes, build, deploy). Leia o [documento canônico completo](skills/methodology/00-canonical-full.md) ou escolha um [capítulo-skill](METHODOLOGY.md).
+- **Padrões** — mais de 50 itens em 9 categorias: criacionais, estruturais, comportamentais, concorrência, sincronização, mensageria, estabilidade, profiling, idiomas, antipadrões. Veja [PATTERNS.md](PATTERNS.md).
+- **Exemplos** — 23 pacotes Go de padrões executáveis com `_test.go`. Um único módulo compartilhado em [`examples/`](examples/).
+- **Site** — GitHub Pages com estilo Linear: <https://amazopic.github.io/go-skills/>
+- **Servidor MCP** — placeholder para uma iteração futura. Veja [`mcp/`](mcp/).
 
-## Instalación como Claude Code skills
+## Instalar como skills do Claude Code
 
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```
 
-Añade a `~/.claude/settings.json`:
+Adicione ao `~/.claude/settings.json`:
 
 ```json
 {
@@ -49,18 +49,18 @@ Añade a `~/.claude/settings.json`:
 }
 ```
 
-Reinicia Claude Code.
+Reinicie o Claude Code.
 
-## Ejecutar ejemplos
+## Executar os exemplos
 
 ```bash
 cd examples
 go test ./...
 ```
 
-## Licencia
+## Licença
 
-MIT — ver [LICENSE](LICENSE).
+MIT — veja [LICENSE](LICENSE).
 
 ## Autor
 

@@ -1,5 +1,5 @@
 <p align="center"><a href="https://amazopic.github.io/go-skills/"><b>go-skills</b></a></p>
-<p align="center">Architectural patterns and methodology for Go services — packaged as Claude Code skills.</p>
+<p align="center">Go 服務的架構模式與方法論 — 封裝成 Claude Code skills。</p>
 
 <p align="center">
   <a href="README.md">English</a> ·
@@ -25,21 +25,21 @@
 
 ---
 
-## What's inside
+## 內容概覽
 
-- **Methodology** — an 18-chapter playbook for building production Go services (directory layout, layered architecture, manual DI, configuration, retries, storage, transport, jobs, logging, validation, errors, testing, build, deploy). Read the [canonical full doc](skills/methodology/00-canonical-full.md) or pick a [chapter-skill](METHODOLOGY.md).
-- **Patterns** — 50+ entries across 9 categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns. See [PATTERNS.md](PATTERNS.md).
-- **Examples** — 23 runnable Go pattern packages with `_test.go`. One shared module under [`examples/`](examples/).
-- **Site** — Linear-styled GitHub Pages: <https://amazopic.github.io/go-skills/>
-- **MCP server** — placeholder for a future iteration. See [`mcp/`](mcp/).
+- **方法論** — 一套用於建構正式 Go 服務的 18 章實戰手冊（目錄結構、分層架構、手動 DI、設定、重試、儲存、傳輸、工作排程、日誌、驗證、錯誤處理、測試、建置、部署）。閱讀[權威完整文件](skills/methodology/00-canonical-full.md)，或挑選一個[章節 skill](METHODOLOGY.md)。
+- **模式** — 橫跨 9 大類別的 50 多條條目：建立型、結構型、行為型、並行、同步、訊息傳遞、穩定性、效能分析、慣用法、反模式。詳見 [PATTERNS.md](PATTERNS.md)。
+- **範例** — 23 個可執行的 Go 模式套件，附 `_test.go`。位於 [`examples/`](examples/) 之下的一個共用模組。
+- **網站** — Linear 風格的 GitHub Pages：<https://amazopic.github.io/go-skills/>
+- **MCP server** — 為未來迭代預留的佔位。詳見 [`mcp/`](mcp/)。
 
-## Install as Claude Code skills
+## 安裝為 Claude Code skills
 
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```
 
-Add to `~/.claude/settings.json`:
+加入 `~/.claude/settings.json`：
 
 ```json
 {
@@ -49,19 +49,19 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
-Restart Claude Code.
+重新啟動 Claude Code。
 
-## Run examples
+## 執行範例
 
 ```bash
 cd examples
 go test ./...
 ```
 
-## License
+## 授權條款
 
-MIT — see [LICENSE](LICENSE).
+MIT — 詳見 [LICENSE](LICENSE)。
 
-## Author
+## 作者
 
 Yevgeniy Achin · <https://github.com/amazopic>

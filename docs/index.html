@@ -26,6 +26,13 @@
     <link rel="alternate" hreflang="ja" href="https://amazopic.github.io/go-skills/?lang=ja" />
     <link rel="alternate" hreflang="ko" href="https://amazopic.github.io/go-skills/?lang=ko" />
     <link rel="alternate" hreflang="ar" href="https://amazopic.github.io/go-skills/?lang=ar" />
+    <link rel="alternate" hreflang="pt-BR" href="https://amazopic.github.io/go-skills/?lang=pt-BR" />
+    <link rel="alternate" hreflang="tr" href="https://amazopic.github.io/go-skills/?lang=tr" />
+    <link rel="alternate" hreflang="id" href="https://amazopic.github.io/go-skills/?lang=id" />
+    <link rel="alternate" hreflang="vi" href="https://amazopic.github.io/go-skills/?lang=vi" />
+    <link rel="alternate" hreflang="hi" href="https://amazopic.github.io/go-skills/?lang=hi" />
+    <link rel="alternate" hreflang="zh-TW" href="https://amazopic.github.io/go-skills/?lang=zh-TW" />
+    <link rel="alternate" hreflang="pl" href="https://amazopic.github.io/go-skills/?lang=pl" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="go-skills — Senior Go developer. Rocket engine included." />
@@ -47,6 +54,13 @@
     <meta property="og:locale:alternate" content="ja_JP" />
     <meta property="og:locale:alternate" content="ko_KR" />
     <meta property="og:locale:alternate" content="ar_SA" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="id_ID" />
+    <meta property="og:locale:alternate" content="vi_VN" />
+    <meta property="og:locale:alternate" content="hi_IN" />
+    <meta property="og:locale:alternate" content="zh_TW" />
+    <meta property="og:locale:alternate" content="pl_PL" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="go-skills — Senior Go developer. Rocket engine included." />
@@ -90,7 +104,7 @@
       "url": "https://amazopic.github.io/go-skills/",
       "downloadUrl": "https://github.com/amazopic/go-skills",
       "codeRepository": "https://github.com/amazopic/go-skills",
-      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar"],
+      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar","pt-BR","tr","id","vi","hi","zh-TW","pl"],
       "keywords": "go, golang, design patterns, concurrency, methodology, claude code, skills, mcp",
       "featureList": [
         "9 pattern categories: creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns",
@@ -98,7 +112,7 @@
         "18-chapter service architecture methodology, split into 13 chapter-grouped Claude Code skills",
         "41 runnable Go pattern packages with race-safe tests under examples/",
         "Static GitHub Pages site with Linear design system",
-        "Full SEO stack: hreflang × 13, JSON-LD (SoftwareApplication, WebSite, FAQPage, BreadcrumbList, HowTo, TechArticle), llms.txt"
+        "Full SEO stack: hreflang × 20, JSON-LD (SoftwareApplication, WebSite, FAQPage, BreadcrumbList, HowTo, TechArticle), llms.txt"
       ]
     }
     </script>
@@ -109,7 +123,7 @@
       "@type": "WebSite",
       "name": "go-skills",
       "url": "https://amazopic.github.io/go-skills/",
-      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar"],
+      "inLanguage": ["en","ru","fr","de","uk","sl","it","es","zh","ja","ko","ar","pt-BR","tr","id","vi","hi","zh-TW","pl"],
       "publisher": { "@type": "Person", "name": "Yevgeniy Achin" }
     }
     </script>
@@ -126,7 +140,7 @@
         { "@type": "Question", "name": "When will the MCP server land?", "acceptedAnswer": { "@type": "Answer", "text": "A future iteration. The mcp/ folder holds a roadmap-only README in v1; the protocol surface is sketched there." } },
         { "@type": "Question", "name": "Why Linear's design system?", "acceptedAnswer": { "@type": "Answer", "text": "Linear's near-black + single-accent aesthetic matches the content — dense, technical, no decoration." } },
         { "@type": "Question", "name": "License?", "acceptedAnswer": { "@type": "Answer", "text": "MIT. Use, fork, redistribute freely." } },
-        { "@type": "Question", "name": "Does this support the methodology in non-English?", "acceptedAnswer": { "@type": "Answer", "text": "README is translated to 13 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap." } }
+        { "@type": "Question", "name": "Does this support the methodology in non-English?", "acceptedAnswer": { "@type": "Answer", "text": "README is translated to 19 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap." } }
       ]
     }
     </script>
@@ -249,7 +263,7 @@ After install I want to code Go with senior-level patterns and the 18-chapter se
             <div class="stat"><div class="stat-num">52</div><div class="stat-label" data-i18n="numbers.s2">Patterns</div></div>
             <div class="stat"><div class="stat-num">18</div><div class="stat-label" data-i18n="numbers.s3">Methodology chapters</div></div>
             <div class="stat"><div class="stat-num">41</div><div class="stat-label" data-i18n="numbers.s4">Runnable examples</div></div>
-            <div class="stat"><div class="stat-num">13</div><div class="stat-label" data-i18n="numbers.s5">Languages</div></div>
+            <div class="stat"><div class="stat-num">19</div><div class="stat-label" data-i18n="numbers.s5">Languages</div></div>
           </div>
         </div>
       </section>
@@ -883,7 +897,7 @@ func (b *Breaker) Call(fn func() error) error {
             <dd data-i18n="faq.a7">MIT. Use, fork, redistribute freely.</dd>
 
             <dt data-i18n="faq.q8">Does this support the methodology in non-English?</dt>
-            <dd data-i18n="faq.a8">README is translated to 13 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap.</dd>
+            <dd data-i18n="faq.a8">README is translated to 19 languages. Pattern bodies and methodology chapters are English-only in v1; localization is on the roadmap.</dd>
           </dl>
         </div>
       </section>
