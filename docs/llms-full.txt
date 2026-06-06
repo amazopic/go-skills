@@ -1454,9 +1454,14 @@ func Start[T any](ctx context.Context, body func(yield func(T) bool)) *Coroutine
 func (c *Coroutine[T]) Next() (T, bool) {
     v, ok := <-c.yield
     if ok {
+        // Wake the body — unless it just exited on its own (e.g. ctx cancelled
+        // while it sat in the second select, so it returned via ctx.Done()
+        // instead of receiving resume). On exit it closes c.yield, so observe
+        // that here too; otherwise Next blocks forever on a resume nobody reads.
         select {
         case c.resume <- struct{}{}:
         case <-c.done:
+        case <-c.yield:
         }
     }
     return v, ok

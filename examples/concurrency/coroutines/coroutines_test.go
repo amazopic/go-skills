@@ -141,3 +141,29 @@ func TestCoroutine_StopIdempotent(t *testing.T) {
 	c.Stop() // must not panic
 	c.Stop()
 }
+
+// TestCoroutine_ContextCancel_Stress is a regression guard for a deadlock: when
+// ctx is cancelled while the body sits in its second select, the body can exit
+// via ctx.Done() instead of receiving resume — leaving Next blocked forever on a
+// resume nobody will receive. The race window is narrow, so we drive it many
+// times; a regression makes this test hang until the timeout fires.
+func TestCoroutine_ContextCancel_Stress(t *testing.T) {
+	for range 5000 {
+		ctx, cancel := context.WithCancel(context.Background())
+		c := Start[int](ctx, func(yield func(int) bool) {
+			for i := 0; ; i++ {
+				if !yield(i) {
+					return
+				}
+			}
+		})
+		c.Next()
+		c.Next()
+		cancel()
+		for {
+			if _, ok := c.Next(); !ok {
+				break
+			}
+		}
+	}
+}

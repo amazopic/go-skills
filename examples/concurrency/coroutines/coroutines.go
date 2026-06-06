@@ -65,10 +65,15 @@ func (c *Coroutine[T]) Next() (T, bool) {
 	select {
 	case v, ok := <-c.yield:
 		if ok {
-			// Wake the body. If done is closed, the body will see it and exit.
+			// Wake the body. The body may instead have just exited on its own —
+			// e.g. its ctx was cancelled while it sat in the second select, so it
+			// returned via ctx.Done() rather than receiving resume. In that case it
+			// closes c.yield as it exits, so observe that (and c.done) here to avoid
+			// blocking forever on a resume nobody will ever receive.
 			select {
 			case c.resume <- struct{}{}:
 			case <-c.done:
+			case <-c.yield:
 			}
 		}
 		return v, ok
