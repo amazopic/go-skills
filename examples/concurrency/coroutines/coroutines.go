@@ -17,7 +17,7 @@ type Coroutine[T any] struct {
 	yield  chan T
 	resume chan struct{}
 	done   chan struct{} // closed by Stop; signals the body to stop
-	once   sync.Once    // guards close(done)
+	once   sync.Once     // guards close(done)
 }
 
 // Start launches the coroutine body. body receives a yield function; calling

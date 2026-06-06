@@ -100,9 +100,9 @@ func TestBulkheadClient_ShedsExcessCallers(t *testing.T) {
 	client := NewBulkheadClient(dep, 500*time.Millisecond, 2) // only 2 concurrent
 
 	var (
-		wg        sync.WaitGroup
-		rejected  int64
-		mu        sync.Mutex
+		wg       sync.WaitGroup
+		rejected int64
+		mu       sync.Mutex
 	)
 
 	for i := 0; i < 10; i++ {

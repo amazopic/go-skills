@@ -32,10 +32,10 @@ func TestBoundedQueue_Len(t *testing.T) {
 
 func TestBoundedQueue_ConcurrentProducersConsumers(t *testing.T) {
 	const (
-		cap      = 8
-		items    = 200
-		nProd    = 4
-		nCons    = 4
+		cap   = 8
+		items = 200
+		nProd = 4
+		nCons = 4
 	)
 	q := NewBoundedQueue(cap)
 	results := make(chan int, items)

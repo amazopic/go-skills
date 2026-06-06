@@ -129,9 +129,9 @@ func (c *BulkheadClient) Call(ctx context.Context) error {
 type circuitState int32
 
 const (
-	stateClosed  circuitState = iota // normal operation
-	stateOpen                        // fast-fail
-	stateHalfOpen                    // probing
+	stateClosed   circuitState = iota // normal operation
+	stateOpen                         // fast-fail
+	stateHalfOpen                     // probing
 )
 
 // CircuitBreaker is a simple three-state circuit breaker. In production use

@@ -30,7 +30,7 @@ func TestResourcePool_BlocksWhenEmpty(t *testing.T) {
 	acquired := make(chan int, 1)
 
 	go func() {
-		<-released          // wait until Release is called
+		<-released              // wait until Release is called
 		acquired <- p.Acquire() // should unblock
 	}()
 

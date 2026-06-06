@@ -35,8 +35,8 @@ var ErrCapacityExceeded = errors.New("handshaking: server has no available capac
 // Server tracks in-flight requests and advertises its remaining capacity.
 // It plays the role of the service behind the /capacity endpoint.
 type Server struct {
-	mu      sync.Mutex
-	limit   int
+	mu       sync.Mutex
+	limit    int
 	inFlight int
 }
 

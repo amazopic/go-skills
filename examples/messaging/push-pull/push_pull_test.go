@@ -10,11 +10,11 @@ import (
 
 func TestPipeline_AllItemsDelivered(t *testing.T) {
 	tests := []struct {
-		name     string
-		pushers  int
-		pullers  int
+		name      string
+		pushers   int
+		pullers   int
 		perPusher int
-		buf      int
+		buf       int
 	}{
 		{"1P1C", 1, 1, 100, 16},
 		{"4P4C", 4, 4, 50, 32},

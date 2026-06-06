@@ -24,9 +24,9 @@ type Pool struct {
 	sem  chan struct{}
 
 	// metrics — updated atomically so tests can inspect without a lock.
-	acquired  atomic.Int64
-	rejected  atomic.Int64
-	current   atomic.Int64
+	acquired atomic.Int64
+	rejected atomic.Int64
+	current  atomic.Int64
 }
 
 // NewPool creates a Pool with the given name and maximum concurrency limit.
