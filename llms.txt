@@ -17,6 +17,7 @@ Languages: 19 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar, pt-BR, tr, id, vi
 
 - [skills/README.md](skills/README.md): how to install as Claude Code skills.
 - [skills/workflow/feature-development.md](skills/workflow/feature-development.md): team-based feature/task flow — three roles analyze independently → senior consolidates → reverse review → user approval gate → same trio implements.
+- [skills/workflow/security-review.md](skills/workflow/security-review.md): team-based security code review — four roles (senior Go, strong-middle Go, DB architect, senior SecOps) audit independently → senior Go consolidates → reverse analysis (cull false positives, find attack chains) → approval gate → same team remediates.
 - [skills/methodology/00-canonical-full.md](skills/methodology/00-canonical-full.md): full Go service architecture doc.
 - [skills/methodology/01..13-*.md](skills/methodology/): 13 chapter-grouped methodology skills.
 - [skills/<category>/*.md](skills/): per-pattern skills across creational, structural, behavioral, concurrency, synchronization, messaging, stability, profiling, idiom, anti-patterns.
@@ -24,6 +25,7 @@ Languages: 19 (en, ru, fr, de, uk, sl, it, es, zh, ja, ko, ar, pt-BR, tr, id, vi
 ## Workflows
 
 - [workflows/feature-development.mjs](workflows/feature-development.mjs): runnable orchestration of the Feature Development Flow skill. `mode: "plan"` produces a vetted plan for approval; `mode: "implement"` builds the approved plan with the same trio.
+- [workflows/security-review.mjs](workflows/security-review.mjs): runnable orchestration of the Security Code Review skill. `mode: "review"` produces a prioritized remediation plan for approval; `mode: "remediate"` fixes the approved findings with the same team.
 
 ## Examples
 

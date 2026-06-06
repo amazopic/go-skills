@@ -312,6 +312,17 @@ After install I want to code Go with senior-level patterns and the 18-chapter se
   -&gt; FINAL PLAN -&gt; your approval gate
   -&gt; implement       (same trio, peer-reviewed)</code></pre>
               </article>
+              <article class="card pattern-card">
+                <span class="status filled">filled</span>
+                <h4>Security Code Review</h4>
+                <p class="desc">Four specialists — senior Go, strong-middle Go, DB architect, senior SecOps — audit independently; the senior Go consolidates one report; a reverse analysis culls false positives and finds attack chains; you approve a prioritized remediation plan; then the team fixes it.</p>
+<pre><code>4x audit     (parallel, independent)
+  -&gt; consolidate     (dedup + attack chains)
+  -&gt; reverse-analysis (cull false positives,
+                       verify exploitability)
+  -&gt; REMEDIATION PLAN -&gt; your approval gate
+  -&gt; remediate        (peer-verified, regression-tested)</code></pre>
+              </article>
             </div>
           </div>
 

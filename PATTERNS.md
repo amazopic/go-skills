@@ -9,6 +9,7 @@ Status: ✓ filled — body written by a senior Go consultant, example code pass
 | Pattern | Status | Skill | Orchestration |
 |---|---|---|---|
 | Feature Development Flow | ✓ | [skills/workflow/feature-development.md](skills/workflow/feature-development.md) | [workflows/feature-development.mjs](workflows/feature-development.mjs) |
+| Security Code Review | ✓ | [skills/workflow/security-review.md](skills/workflow/security-review.md) | [workflows/security-review.mjs](workflows/security-review.mjs) |
 
 ## Creational
 
