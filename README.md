@@ -65,6 +65,12 @@ cd examples
 go test ./...
 ```
 
+## Versioning
+
+This repo follows [Semantic Versioning](https://semver.org/). Current release: **v1.0.0**.
+See [CHANGELOG.md](CHANGELOG.md) for the release history and what MAJOR/MINOR/PATCH mean
+for the content surface (skills, examples, locales, site).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
