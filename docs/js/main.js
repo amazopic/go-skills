@@ -40,11 +40,12 @@ function setupCopyButtons() {
   });
 }
 
-function init() {
+async function init() {
   themes.init();
-  apply(getLocale());
   buildLangSwitcher();
   setupCopyButtons();
+  // apply() is async now (it may dynamic-import a locale chunk); await it last.
+  await apply(getLocale());
 }
 
 if (document.readyState === 'loading') {

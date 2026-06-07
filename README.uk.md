@@ -20,7 +20,11 @@
   <a href="README.vi.md">Tiếng Việt</a> ·
   <a href="README.hi.md">हिन्दी</a> ·
   <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.pl.md">Polski</a>
+  <a href="README.pl.md">Polski</a> ·
+  <a href="README.th.md">ไทย</a> ·
+  <a href="README.he.md">עברית</a> ·
+  <a href="README.bn.md">বাংলা</a> ·
+  <a href="README.ur.md">اردو</a>
 </p>
 
 ---

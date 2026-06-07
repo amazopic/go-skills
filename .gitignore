@@ -11,3 +11,6 @@ bin/
 
 # brainstorming/writing-plans skills save here, but docs/ is the published Pages root — keep planning out of the live site
 docs/superpowers/
+
+# Playwright MCP scratch artifacts (browser snapshots/screenshots from local QA)
+.playwright-mcp/
