@@ -23,6 +23,21 @@ content surface:
 > The `examples/` Go module is meant to be cloned and run, not imported via `go get`;
 > repository tags version the content and site, not a published Go API.
 
+## [1.1.0] - 2026-06-23
+
+### Added
+
+- **"Vibe code" install** — a second, hands-off install path on the site and in all
+  23 READMEs: paste one prompt into Claude Code and it clones the repo, registers
+  `skillSources`, reloads, verifies the skills are live, and offers to start — no
+  manual `settings.json` edits. The heading is localized into all 23 locales; the
+  prompt body stays English (it is an actionable Claude Code instruction).
+- **Google Analytics** (gtag.js) on the site.
+
+### Changed
+
+- Refreshed the sitemap `lastmod`.
+
 ## [1.0.0] - 2026-06-07
 
 First tagged release — marks the complete v1 state of the project.
@@ -59,4 +74,5 @@ First tagged release — marks the complete v1 state of the project.
   translated to all 23 languages. Body translation is on the roadmap.
 - The MCP server is a roadmap placeholder in v1 (`mcp/`).
 
+[1.1.0]: https://github.com/amazopic/go-skills/releases/tag/v1.1.0
 [1.0.0]: https://github.com/amazopic/go-skills/releases/tag/v1.0.0
