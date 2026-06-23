@@ -86,5 +86,7 @@ export default {
   "faq.q7": "许可证？",
   "faq.a7": "MIT。",
   "faq.q8": "方法论支持非英语语言吗？",
-  "faq.a8": "README 提供 23 种语言。模式和方法论正文在 v1 中仅提供英语。"
+  "faq.a8": "README 提供 23 种语言。模式和方法论正文在 v1 中仅提供英语。",
+  "vibecode.title": "躺平就行——剩下的交给 Claude Code。",
+  "vibecode.prompt": "Set up go-skills for me — handle everything, I'll just vibe.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add \"~/.claude/plugins/go-skills/skills\" to skillSources in ~/.claude/settings.json\n3. Reload settings and confirm the skills are live\n4. Tell me in one line what you can now help with — patterns, methodology, workflows\n\nThen ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes."
 };

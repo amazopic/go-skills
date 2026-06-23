@@ -42,6 +42,21 @@
 
 ## Claude Code skills로 설치
 
+가장 쉬운 방법 — 이걸 Claude Code에 붙여넣으면 전부 설정됩니다:
+
+```text
+Set up go-skills for me — handle everything, I'll just vibe.
+
+1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills
+2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json
+3. Reload settings and confirm the skills are live
+4. Tell me in one line what you can now help with — patterns, methodology, workflows
+
+Then ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes.
+```
+
+또는 직접 설정하기:
+
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```

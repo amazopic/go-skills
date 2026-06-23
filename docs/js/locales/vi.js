@@ -86,5 +86,7 @@ export default {
   "faq.q7": "Giấy phép?",
   "faq.a7": "MIT.",
   "faq.q8": "Phương pháp luận này có hỗ trợ ngôn ngữ ngoài tiếng Anh không?",
-  "faq.a8": "README có 23 ngôn ngữ. Phần thân của mẫu thiết kế và phương pháp luận chỉ có tiếng Anh trong v1."
+  "faq.a8": "README có 23 ngôn ngữ. Phần thân của mẫu thiết kế và phương pháp luận chỉ có tiếng Anh trong v1.",
+  "vibecode.title": "Cứ thư giãn — để Claude Code lo hết.",
+  "vibecode.prompt": "Set up go-skills for me — handle everything, I'll just vibe.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add \"~/.claude/plugins/go-skills/skills\" to skillSources in ~/.claude/settings.json\n3. Reload settings and confirm the skills are live\n4. Tell me in one line what you can now help with — patterns, methodology, workflows\n\nThen ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes."
 };

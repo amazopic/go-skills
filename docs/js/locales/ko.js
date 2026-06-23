@@ -86,5 +86,7 @@ export default {
   "faq.q7": "라이선스?",
   "faq.a7": "MIT.",
   "faq.q8": "영어 외 언어로 방법론을 지원하나요?",
-  "faq.a8": "README는 23개 언어로 제공됩니다. 패턴과 방법론 본문은 v1에서 영어 전용입니다."
+  "faq.a8": "README는 23개 언어로 제공됩니다. 패턴과 방법론 본문은 v1에서 영어 전용입니다.",
+  "vibecode.title": "그냥 맡기세요 — Claude Code가 다 알아서 합니다.",
+  "vibecode.prompt": "Set up go-skills for me — handle everything, I'll just vibe.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add \"~/.claude/plugins/go-skills/skills\" to skillSources in ~/.claude/settings.json\n3. Reload settings and confirm the skills are live\n4. Tell me in one line what you can now help with — patterns, methodology, workflows\n\nThen ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes."
 };

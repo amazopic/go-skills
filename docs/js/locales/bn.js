@@ -86,5 +86,7 @@ export default {
   "faq.q7": "লাইসেন্স?",
   "faq.a7": "MIT।",
   "faq.q8": "এটি কি ইংরেজি ছাড়া অন্য ভাষায় মেথডোলজি সমর্থন করে?",
-  "faq.a8": "README × 23 ভাষা। প্যাটার্ন ও মেথডোলজি বডি v1-এ শুধু ইংরেজিতে।"
+  "faq.a8": "README × 23 ভাষা। প্যাটার্ন ও মেথডোলজি বডি v1-এ শুধু ইংরেজিতে।",
+  "vibecode.title": "নিশ্চিন্ত থাকুন — বাকিটা Claude Code সামলে নেবে।",
+  "vibecode.prompt": "Set up go-skills for me — handle everything, I'll just vibe.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add \"~/.claude/plugins/go-skills/skills\" to skillSources in ~/.claude/settings.json\n3. Reload settings and confirm the skills are live\n4. Tell me in one line what you can now help with — patterns, methodology, workflows\n\nThen ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes."
 };

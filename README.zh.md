@@ -42,6 +42,21 @@
 
 ## 安装为 Claude Code skills
 
+最省事的方式——把这段粘进 Claude Code，它会一键搞定：
+
+```text
+Set up go-skills for me — handle everything, I'll just vibe.
+
+1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills
+2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json
+3. Reload settings and confirm the skills are live
+4. Tell me in one line what you can now help with — patterns, methodology, workflows
+
+Then ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes.
+```
+
+或者手动配置：
+
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```

@@ -86,5 +86,7 @@ export default {
   "faq.q7": "Licença?",
   "faq.a7": "MIT.",
   "faq.q8": "Isto dá suporte à metodologia em outros idiomas além do inglês?",
-  "faq.a8": "README em 23 idiomas. Os corpos de padrões e metodologia estão só em inglês na v1."
+  "faq.a8": "README em 23 idiomas. Os corpos de padrões e metodologia estão só em inglês na v1.",
+  "vibecode.title": "Relaxa — o Claude Code configura tudo.",
+  "vibecode.prompt": "Set up go-skills for me — handle everything, I'll just vibe.\n\n1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills\n2. Add \"~/.claude/plugins/go-skills/skills\" to skillSources in ~/.claude/settings.json\n3. Reload settings and confirm the skills are live\n4. Tell me in one line what you can now help with — patterns, methodology, workflows\n\nThen ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes."
 };

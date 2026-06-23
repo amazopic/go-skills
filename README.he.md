@@ -50,6 +50,29 @@
 
 ## התקנה כ-Claude Code skills
 
+<div dir="rtl">
+
+הדרך הכי קלה — הדבק את זה ב-Claude Code והוא יגדיר הכול:
+
+</div>
+
+```text
+Set up go-skills for me — handle everything, I'll just vibe.
+
+1. Clone https://github.com/amazopic/go-skills to ~/.claude/plugins/go-skills
+2. Add "~/.claude/plugins/go-skills/skills" to skillSources in ~/.claude/settings.json
+3. Reload settings and confirm the skills are live
+4. Tell me in one line what you can now help with — patterns, methodology, workflows
+
+Then ask what I'm building and start coding Go at senior level — idiomatic, race-safe, no rookie mistakes.
+```
+
+<div dir="rtl">
+
+או שתגדיר ידנית:
+
+</div>
+
 ```bash
 git clone https://github.com/amazopic/go-skills.git ~/.claude/plugins/go-skills
 ```
